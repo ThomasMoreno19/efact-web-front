@@ -1,26 +1,60 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
+
+  --app-background: #181818;
+  --app-surface: #212121;
+  --app-surface-raised: #292929;
+  --app-field: #181818;
+  --app-foreground: #f5f5f5;
+  --app-muted: #a3a3a3;
+  --app-brand: #e8a114;
+  --app-brand-hover: #f2b233;
+  --app-brand-foreground: #181818;
+  --app-border: #3a3a3a;
+  --app-danger: #f87171;
+  --app-row-alternate: color-mix(in srgb, var(--app-surface) 95%, white 5%);
+  --app-stock-low: #ef4444;
+  --app-stock-warning: #eab308;
+  --app-stock-high: #22c55e;
+
+  --app-radius-input: 0.75rem;
+  --app-radius-button: 0.75rem;
+  --app-radius-card: 1.25rem;
+  --app-radius-pill: 9999px;
+  --app-radius-record: 0.3125rem;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--app-background);
+  --color-surface: var(--app-surface);
+  --color-surface-raised: var(--app-surface-raised);
+  --color-field: var(--app-field);
+  --color-foreground: var(--app-foreground);
+  --color-muted: var(--app-muted);
+  --color-brand: var(--app-brand);
+  --color-brand-hover: var(--app-brand-hover);
+  --color-brand-foreground: var(--app-brand-foreground);
+  --color-border: var(--app-border);
+  --color-danger: var(--app-danger);
+  --color-row-alternate: var(--app-row-alternate);
+  --color-stock-low: var(--app-stock-low);
+  --color-stock-warning: var(--app-stock-warning);
+  --color-stock-high: var(--app-stock-high);
+
+  --radius-input: var(--app-radius-input);
+  --radius-button: var(--app-radius-button);
+  --radius-card: var(--app-radius-card);
+  --radius-pill: var(--app-radius-pill);
+  --radius-record: var(--app-radius-record);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--app-background);
+  color: var(--app-foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }

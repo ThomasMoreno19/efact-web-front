@@ -2,6 +2,7 @@
 
 import type { Empresa } from "@/features/empresa/types/empresa";
 import { useDismissLayer } from "@/hooks/use-dismiss-layer";
+import { Pencil, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 
 interface CompanyOptionsMenuProps {
@@ -53,8 +54,9 @@ export function CompanyOptionsMenu({
               setIsOpen(false);
               onEdit();
             }}
-            className="w-full rounded-button px-3 py-2 text-left text-sm transition hover:bg-surface-raised"
+            className="flex w-full items-center gap-2 rounded-button px-3 py-2 text-left text-sm transition hover:bg-surface-raised"
           >
+            <Pencil aria-hidden="true" className="size-4 shrink-0" />
             Editar
           </button>
           <button
@@ -64,8 +66,9 @@ export function CompanyOptionsMenu({
               setIsOpen(false);
               onDelete();
             }}
-            className="w-full rounded-button px-3 py-2 text-left text-sm text-danger transition hover:bg-danger/10"
+            className="flex w-full items-center gap-2 rounded-button px-3 py-2 text-left text-sm text-danger transition hover:bg-danger/10"
           >
+            <Trash2 aria-hidden="true" className="size-4 shrink-0" />
             Eliminar
           </button>
         </div>

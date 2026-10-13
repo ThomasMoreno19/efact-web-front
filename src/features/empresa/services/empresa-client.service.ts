@@ -2,6 +2,8 @@ import { fetchWithAdminSession } from "@/features/auth/services/auth-client.serv
 import type {
   Empresa,
   EmpresaConfiguracionCatalogoInput,
+  EmpresaInformationInput,
+  EmpresaPageNavigationInput,
   EmpresaInput,
 } from "@/features/empresa/types/empresa";
 import { formatApiError } from "@/services/format-api-error";
@@ -17,6 +19,20 @@ export async function updateEmpresa(id: number, input: EmpresaInput) {
 export async function updateEmpresaCatalogSettings(
   id: number,
   input: EmpresaConfiguracionCatalogoInput,
+) {
+  await sendEmpresaRequest(`/api/admin/empresas/${id}`, "PATCH", input);
+}
+
+export async function updateEmpresaInformation(
+  id: number,
+  input: EmpresaInformationInput,
+) {
+  await sendEmpresaRequest(`/api/admin/empresas/${id}`, "PATCH", input);
+}
+
+export async function updateEmpresaPageNavigation(
+  id: number,
+  input: EmpresaPageNavigationInput,
 ) {
   await sendEmpresaRequest(`/api/admin/empresas/${id}`, "PATCH", input);
 }

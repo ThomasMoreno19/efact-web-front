@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import {
-  readBackendAuthTokens,
+  readBackendAuthRefreshTokens,
   setInternalAuthCookies,
 } from "@/features/auth/services/auth-token-cookie.service";
 import { fetchBackend } from "@/services/backend-api";
@@ -50,7 +50,7 @@ export async function handleInternalLogin(request: Request) {
       );
     }
 
-    const tokens = readBackendAuthTokens(backendResponse.headers);
+    const tokens = readBackendAuthRefreshTokens(backendResponse.headers);
     if (!tokens) {
       return NextResponse.json(
         { message: "El servidor devolvió una respuesta de sesión inválida." },

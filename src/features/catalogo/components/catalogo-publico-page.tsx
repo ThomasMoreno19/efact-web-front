@@ -19,6 +19,8 @@ import {
   PedidoClientePage,
 } from '@/features/catalogo/components/catalogo-checkout-page';
 import { CompanyLogo } from '@/features/empresa/components/company-logo';
+import { CompanyPublicPageNavigation } from '@/features/empresa/components/company-public-page-navigation';
+import { BarcodeScannerButton } from '@/features/articulo/components/barcode-scanner-button';
 import type { EmpresaPublica } from '@/features/empresa/types/empresa';
 import {
   getArticuloStockStatus,
@@ -26,6 +28,7 @@ import {
 } from '@/features/articulo/utils/articulo-stock-status';
 import { Input } from '@/components/ui/input';
 import { CatalogoRegistroDetalleModal } from '@/features/catalogo/components/catalogo-registro-detalle-modal';
+import { CatalogoShareButton } from '@/features/catalogo/components/catalogo-share-button';
 import { getCatalogoPublicoPage } from '@/features/catalogo/services/catalogo-publico.service';
 import type {
   CatalogoItemCarrito,
@@ -37,6 +40,7 @@ import {
   serializeCatalogoCarritoEntries,
   type CatalogoCarritoEntrada,
 } from '@/features/catalogo/utils/catalogo-carrito-url';
+import { buildCatalogoArticuloUrl } from '@/features/catalogo/utils/catalogo-share-url';
 import type {
   CatalogoListaPublica,
   CatalogoPublicoPage as CatalogoPublicoPageData,
@@ -69,12 +73,14 @@ type CatalogoFiltroLista = {
   search: string;
   codigoProveedor: string;
   codigoInterno: string;
+  codigoBarra: string;
 };
 
 const EMPTY_FILTER: CatalogoFiltroLista = {
   search: '',
   codigoProveedor: '',
   codigoInterno: '',
+  codigoBarra: '',
 };
 
 const EMPTY_CATEGORY_IDS = { marcaIds: [], rubroIds: [] };
@@ -89,10 +95,14 @@ export function CatalogoPublicoPage({
   empresa,
   initialView,
   initialCartEntries,
+  initialArticleCode = null,
+  initialOpenArticleDetails = false,
 }: {
   empresa: EmpresaPublica;
   initialView: 'catalogo' | 'carrito';
   initialCartEntries: CatalogoCarritoEntrada[];
+  initialArticleCode?: string | null;
+  initialOpenArticleDetails?: boolean;
 }) {
   const router = useRouter();
   const initialCartEntriesKey = JSON.stringify(initialCartEntries);
@@ -109,8 +119,11 @@ export function CatalogoPublicoPage({
   const [nombreCliente, setNombreCliente] = useState('');
   const [observacionPedido, setObservacionPedido] = useState('');
   const [categoryFilters, setCategoryFilters] = useState<CatalogoFiltroCategoria[]>([]);
+  const [sharedDetailToOpen, setSharedDetailToOpen] = useState<string | null>(
+    initialOpenArticleDetails ? initialArticleCode ?? null : null,
+  );
   const [filters, setFilters] = useState<Record<CatalogoListaPublica, CatalogoFiltroLista>>({
-    articulos: { ...EMPTY_FILTER },
+    articulos: { ...EMPTY_FILTER, codigoInterno: initialArticleCode ?? '' },
     marcas: { ...EMPTY_FILTER },
     rubros: { ...EMPTY_FILTER },
     ofertas: { ...EMPTY_FILTER },
@@ -123,6 +136,19 @@ export function CatalogoPublicoPage({
   const isCartLoading = hydratedCartKey !== initialCartEntriesKey;
   const showCartButton =
     empresa.tieneCarrito && cartItems.length > 0 && checkoutStep === 'catalogo';
+
+  useEffect(() => {
+    if (initialView !== 'catalogo') return;
+    setActiveList('articulos');
+    setCategoryFilters([]);
+    setFilters((current) => ({
+      ...current,
+      articulos: { ...EMPTY_FILTER, codigoInterno: initialArticleCode ?? '' },
+    }));
+    setSharedDetailToOpen(
+      initialOpenArticleDetails ? initialArticleCode ?? null : null,
+    );
+  }, [initialArticleCode, initialOpenArticleDetails, initialView]);
 
   useEffect(() => {
     const entries = JSON.parse(
@@ -344,6 +370,17 @@ export function CatalogoPublicoPage({
     }));
   }
 
+  function handleBarcodeDetected(codigoBarra: string) {
+    setCheckoutStep('catalogo');
+    setActiveList('articulos');
+    setKeepInitialFocus(false);
+    setCategoryFilters([]);
+    setFilters((current) => ({
+      ...current,
+      articulos: { ...EMPTY_FILTER, codigoBarra: codigoBarra.trim() },
+    }));
+  }
+
   function toggleCategoryFilter(
     categoria: 'marcas' | 'rubros',
     record: CatalogoRegistroPublico,
@@ -387,10 +424,21 @@ export function CatalogoPublicoPage({
         }`}
       >
         <div
-          className={`mx-auto flex max-w-5xl flex-col items-center text-center transition-all duration-300 ${
+          className={`relative mx-auto flex max-w-5xl flex-col items-center px-12 text-center transition-all duration-300 ${
             compactHeader ? 'gap-0 py-2' : 'py-0'
           }`}
         >
+          <CompanyPublicPageNavigation
+            empresa={empresa}
+            currentPage="catalogo"
+            containerClassName="absolute left-0 top-1 z-30"
+          />
+          {empresa.incluirCodigoBarra && initialView === 'catalogo' && checkoutStep === 'catalogo' ? (
+            <BarcodeScannerButton
+              onDetected={handleBarcodeDetected}
+              className="absolute right-0 top-1"
+            />
+          ) : null}
           <div
             className={`relative overflow-hidden rounded-record bg-surface transition-all duration-300 ${
               compactHeader ? 'size-12' : 'size-28 sm:size-36'
@@ -526,6 +574,19 @@ export function CatalogoPublicoPage({
                   />
                 </div>
               ) : null}
+              {activeList === 'articulos' && currentFilter.codigoBarra ? (
+                <div className="mx-auto w-full max-w-md">
+                  <SearchField
+                    id="catalog-public-barcode"
+                    label="Código de barras"
+                    placeholder="Código de barras"
+                    value={currentFilter.codigoBarra}
+                    maxLength={20}
+                    onChange={(value) => updateFilter('codigoBarra', value)}
+                    onClear={() => updateFilter('codigoBarra', '')}
+                  />
+                </div>
+              ) : null}
             </div>
 
             {categoryFilters.length > 0 ? (
@@ -536,13 +597,16 @@ export function CatalogoPublicoPage({
             ) : null}
 
             <CatalogoPublicoList
-              key={`${activeList}:${activeList === 'articulos' || activeList === 'ofertas' ? categoryFilterKey : ''}`}
+              key={`${activeList}:${activeList === 'articulos' || activeList === 'ofertas' ? categoryFilterKey : ''}:${initialArticleCode ?? ''}`}
               empresaId={empresa.id}
+              empresaSlug={empresa.slug}
               lista={activeList}
               filters={currentFilter}
               categoryFilters={categoryFilters}
               toleranciaMinDias={empresa.toleranciaMinDias}
               toleranciaMaxDias={empresa.toleranciaMaxDias}
+              initialOpenArticleCode={sharedDetailToOpen}
+              onSharedDetailOpened={() => setSharedDetailToOpen(null)}
               carritoHabilitado={empresa.tieneCarrito}
               cartItems={cartItems}
               onToggleCart={toggleCartItem}
@@ -554,6 +618,10 @@ export function CatalogoPublicoPage({
         ) : checkoutStep === 'carrito' ? (
           <CatalogoCarritoPage
             items={cartItems}
+            shareUrl={buildCatalogoCarritoUrl(
+              `/${empresa.slug}/catalogo/carrito`,
+              getCartEntries(cartItems),
+            )}
             isLoading={isCartLoading}
             error={cartLoadError}
             onBack={backToCatalog}
@@ -718,22 +786,28 @@ function CatalogoFiltroChips({
 
 function CatalogoPublicoList({
   empresaId,
+  empresaSlug,
   lista,
   filters,
   categoryFilters,
   toleranciaMinDias,
   toleranciaMaxDias,
+  initialOpenArticleCode,
+  onSharedDetailOpened,
   carritoHabilitado,
   cartItems,
   onToggleCart,
   onToggleCategoryFilter,
 }: {
   empresaId: number;
+  empresaSlug: string;
   lista: CatalogoListaPublica;
   filters: CatalogoFiltroLista;
   categoryFilters: CatalogoFiltroCategoria[];
   toleranciaMinDias: number | null;
   toleranciaMaxDias: number | null;
+  initialOpenArticleCode: string | null;
+  onSharedDetailOpened: () => void;
   carritoHabilitado: boolean;
   cartItems: CatalogoItemCarrito[];
   onToggleCart: (articulo: CatalogoRegistroPublico) => void;
@@ -873,7 +947,8 @@ function CatalogoPublicoList({
   }
 
   const searchIsActive =
-    Object.values(debouncedFilters).some(Boolean) || categoryFilters.length > 0;
+    Object.values(debouncedFilters).some(Boolean) ||
+    categoryFilters.length > 0;
 
   return (
     <div className="mt-6">
@@ -918,8 +993,11 @@ function CatalogoPublicoList({
         ) : (
           <CatalogoArticulos
             records={records}
+            empresaSlug={empresaSlug}
             toleranciaMinDias={toleranciaMinDias}
             toleranciaMaxDias={toleranciaMaxDias}
+            initialOpenArticleCode={initialOpenArticleCode}
+            onSharedDetailOpened={onSharedDetailOpened}
             carritoHabilitado={carritoHabilitado}
             cartItems={cartItems}
             onToggleCart={onToggleCart}
@@ -942,20 +1020,53 @@ function CatalogoPublicoList({
 
 function CatalogoArticulos({
   records,
+  empresaSlug,
   toleranciaMinDias,
   toleranciaMaxDias,
+  initialOpenArticleCode,
+  onSharedDetailOpened,
   carritoHabilitado,
   cartItems,
   onToggleCart,
 }: {
   records: CatalogoRegistroPublico[];
+  empresaSlug: string;
   toleranciaMinDias: number | null;
   toleranciaMaxDias: number | null;
+  initialOpenArticleCode: string | null;
+  onSharedDetailOpened: () => void;
   carritoHabilitado: boolean;
   cartItems: CatalogoItemCarrito[];
   onToggleCart: (articulo: CatalogoRegistroPublico) => void;
 }) {
   const [selectedArticle, setSelectedArticle] = useState<CatalogoRegistroPublico | null>(null);
+  const sharedDetailOpenedRef = useRef(false);
+
+  useEffect(() => {
+    if (!initialOpenArticleCode || sharedDetailOpenedRef.current) {
+      return;
+    }
+    const article = records.find(
+      (record) => String(record.codigo_interno) === initialOpenArticleCode,
+    );
+    if (!article) return;
+    setSelectedArticle(article);
+    sharedDetailOpenedRef.current = true;
+    onSharedDetailOpened();
+  }, [initialOpenArticleCode, onSharedDetailOpened, records]);
+
+  function closeArticleDetails() {
+    setSelectedArticle(null);
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('detalle')) {
+      url.searchParams.delete('detalle');
+      window.history.replaceState(
+        window.history.state,
+        '',
+        `${url.pathname}${url.search}${url.hash}`,
+      );
+    }
+  }
 
   return (
     <>
@@ -994,9 +1105,20 @@ function CatalogoArticulos({
             cartItem.cantidad >= MAX_CART_QUANTITY;
           const isSelected = cartItem !== undefined;
           const articleName = formatArticleName(articulo.nombre);
+          const codigoInterno = articulo.codigo_interno;
+          const articleShareUrl =
+            typeof codigoInterno === 'number' &&
+            Number.isSafeInteger(codigoInterno) &&
+            codigoInterno >= 0 &&
+            codigoInterno <= 2_147_483_647
+              ? buildCatalogoArticuloUrl(
+                  `/${empresaSlug}/catalogo`,
+                  codigoInterno,
+                )
+              : null;
           const articleContent = (
             <>
-              <span className="min-w-0 flex-1">
+              <span className="min-w-0 flex-1 pr-9">
                 <span
                   role="heading"
                   aria-level={3}
@@ -1062,7 +1184,7 @@ function CatalogoArticulos({
           return (
             <article
               key={articulo.id}
-              className={`flex min-h-28 items-stretch overflow-hidden rounded-record sm:min-h-32 ${
+              className={`relative flex min-h-28 items-stretch overflow-hidden rounded-record sm:min-h-32 ${
                 isSelected
                   ? 'bg-stock-warning/15 odd:bg-stock-warning/30'
                   : 'odd:bg-foreground/5'
@@ -1104,6 +1226,11 @@ function CatalogoArticulos({
                   {articleContent}
                 </div>
               )}
+              {articleShareUrl ? (
+                <div className="absolute right-1 top-1 z-10">
+                  <CatalogoShareButton href={articleShareUrl} title={articleName} />
+                </div>
+              ) : null}
             </article>
           );
         })}
@@ -1111,9 +1238,21 @@ function CatalogoArticulos({
       {selectedArticle ? (
         <CatalogoRegistroDetalleModal
           articulo={selectedArticle}
+          shareUrl={
+            typeof selectedArticle.codigo_interno === 'number' &&
+            Number.isSafeInteger(selectedArticle.codigo_interno) &&
+            selectedArticle.codigo_interno >= 0 &&
+            selectedArticle.codigo_interno <= 2_147_483_647
+              ? buildCatalogoArticuloUrl(
+                  `/${empresaSlug}/catalogo`,
+                  selectedArticle.codigo_interno,
+                  true,
+                )
+              : null
+          }
           toleranciaMinDias={toleranciaMinDias}
           toleranciaMaxDias={toleranciaMaxDias}
-          onClose={() => setSelectedArticle(null)}
+          onClose={closeArticleDetails}
         />
       ) : null}
     </>
@@ -1235,6 +1374,7 @@ function normalizeFilters(filters: CatalogoFiltroLista): CatalogoFiltroLista {
     search: normalizeWords(filters.search),
     codigoProveedor: filters.codigoProveedor.trim(),
     codigoInterno: filters.codigoInterno.trim(),
+    codigoBarra: filters.codigoBarra.trim(),
   };
 }
 
@@ -1245,6 +1385,7 @@ function areFiltersEqual(
   return (
     first.search === second.search &&
     first.codigoProveedor === second.codigoProveedor &&
-    first.codigoInterno === second.codigoInterno
+    first.codigoInterno === second.codigoInterno &&
+    first.codigoBarra === second.codigoBarra
   );
 }

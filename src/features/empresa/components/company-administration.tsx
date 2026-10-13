@@ -29,6 +29,7 @@ export function CompanyAdministration({
   const [activeSection, setActiveSection] =
     useState<CompanyAdminSection>(() => defaultSection(empresa));
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const visibleActiveSection = isCompanyAdminSectionEnabled(
     empresa,
     activeSection,
@@ -57,6 +58,9 @@ export function CompanyAdministration({
         onSectionChange={changeSection}
         isLoggingOut={isLoggingOut}
         onLogout={handleLogout}
+        isOpen={isMobileSidebarOpen}
+        onOpen={() => setIsMobileSidebarOpen(true)}
+        onClose={() => setIsMobileSidebarOpen(false)}
       />
       <CompanyAdminContent
         empresa={empresa}

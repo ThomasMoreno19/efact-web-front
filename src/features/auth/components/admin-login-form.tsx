@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
-import { loginSuperadmin } from "@/features/auth/services/auth-client.service";
+import { loginAdmin } from "@/features/auth/services/auth-client.service";
 
 export function AdminLoginForm() {
   const router = useRouter();
@@ -22,8 +22,12 @@ export function AdminLoginForm() {
     setFeedback(null);
     setIsSubmitting(true);
     try {
-      await loginSuperadmin(nombre, contrasena);
-      router.replace("/admin");
+      const session = await loginAdmin(nombre, contrasena);
+      router.replace(
+        session.role === "Superadmin"
+          ? "/admin"
+          : `/${encodeURIComponent(session.empresaSlug)}/administracion`,
+      );
       router.refresh();
     } catch (cause) {
       setFeedback(

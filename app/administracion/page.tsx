@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import Logo from "../../public/Logo.png";
+import { AdminLogoutButton } from "@/features/auth/components/admin-logout-button";
 import { CompanyDashboard } from "@/features/empresa/components/company-dashboard";
 import { getAllEmpresas } from "@/features/empresa/services/empresa-query.service";
 import {
@@ -18,6 +19,9 @@ export default async function AdminPage() {
   const session = await getAdminSession();
   if (!session) {
     redirect("/admin/login");
+  }
+  if (session.role === "Admin") {
+    redirect(`/${session.empresaSlug}/administracion`);
   }
 
   const token = await getAdminAccessToken();
@@ -45,6 +49,7 @@ export default async function AdminPage() {
           <span className="text-lg font-semibold tracking-tight">
             E-fact Web
           </span>
+          <AdminLogoutButton />
         </div>
       </header>
 

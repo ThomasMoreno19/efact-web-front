@@ -2,11 +2,15 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { ShoppingBag } from "lucide-react";
 import { CheckboxField } from "@/components/ui/checkbox-field";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Input } from "@/components/ui/input";
 import { HorarioAdminPanel } from "@/features/horario/components/horario-admin-panel";
 import { UsuariosInternosPanel } from "@/features/usuario/components/usuarios-internos-panel";
+import { CompanyAdminUserSettings } from "@/features/empresa/components/company-admin-user-settings";
+import { CompanyInformationSection } from "@/features/empresa/components/company-information-section";
+import { CompanyPageNavigationSetting } from "@/features/empresa/components/company-page-navigation-setting";
 import { updateEmpresaCatalogSettings } from "@/features/empresa/services/empresa-client.service";
 import type { Empresa } from "@/features/empresa/types/empresa";
 
@@ -96,10 +100,21 @@ export function CompanyConfigurationSection({
 
   return (
     <div className="space-y-6">
+      <CompanyPageNavigationSetting
+        empresaId={empresa.id}
+        initialValue={empresa.mostrarNavegacionPaginas ?? true}
+      />
       <HorarioAdminPanel empresaId={empresa.id} />
-      <UsuariosInternosPanel empresaId={empresa.id} />
-
-      <CollapsibleSection title="Catálogo">
+      <CollapsibleSection
+        title="Catálogo"
+        icon={
+          <ShoppingBag
+            aria-hidden="true"
+            className="size-6 text-muted"
+            strokeWidth={1.7}
+          />
+        }
+      >
         <form onSubmit={saveCatalogSettings}>
           <fieldset disabled={isSaving} className="space-y-6">
             <p className="text-sm leading-6 text-muted">
@@ -211,6 +226,9 @@ export function CompanyConfigurationSection({
           </div>
         </form>
       </CollapsibleSection>
+      <UsuariosInternosPanel empresaId={empresa.id} />
+      <CompanyAdminUserSettings empresaId={empresa.id} />
+      <CompanyInformationSection empresa={empresa} />
     </div>
   );
 }

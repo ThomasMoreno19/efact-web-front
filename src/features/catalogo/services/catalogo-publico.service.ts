@@ -20,9 +20,11 @@ export async function getCatalogoPublicoPage(
   const query = new URLSearchParams({ offset: String(offset) });
   const search = filters.search?.trim().replace(/\s+/g, ' ') ?? '';
   const codigoProveedor = filters.codigoProveedor?.trim() ?? '';
+  const codigoBarra = filters.codigoBarra?.trim() ?? '';
   if (search) query.set('search', search);
   if (codigoProveedor) query.set('codigoProveedor', codigoProveedor);
   if (codigoInterno) query.set('codigoInterno', codigoInterno);
+  if (codigoBarra) query.set('codigoBarra', codigoBarra);
   filters.articuloIds?.forEach((id) => query.append('articuloId', id));
   filters.marcaIds?.forEach((id) => query.append('marcaId', id));
   filters.rubroIds?.forEach((id) => query.append('rubroId', id));

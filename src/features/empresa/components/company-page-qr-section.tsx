@@ -1,6 +1,14 @@
 "use client";
 
-import { Download } from "lucide-react";
+import {
+  Download,
+  ShoppingBag,
+  UserRound,
+  UsersRound,
+  Wallet,
+  Wrench,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 
@@ -10,6 +18,12 @@ const MODULE_LABELS: Record<CompanyPageModule, string> = {
   catalogo: "Catálogo",
   saldo: "Saldos",
   reparacion: "Reparación",
+};
+
+const MODULE_ICONS: Record<CompanyPageModule, LucideIcon> = {
+  catalogo: ShoppingBag,
+  saldo: Wallet,
+  reparacion: Wrench,
 };
 
 export function CompanyPageQrSection({
@@ -28,19 +42,29 @@ export function CompanyPageQrSection({
   const encodedSlug = encodeURIComponent(empresaSlug);
   const clientUrl = siteOrigin ? `${siteOrigin}/${encodedSlug}/${modulo}` : "";
   const internalUrl = `${clientUrl}/interno`;
+  const ModuleIcon = MODULE_ICONS[modulo];
 
   return (
     <section className="rounded-card border border-border bg-surface p-6 sm:p-8">
-      <h2 className="text-lg font-semibold">{MODULE_LABELS[modulo]}</h2>
+      <h2 className="flex items-center gap-3 text-[21px] font-semibold">
+        <ModuleIcon
+          aria-hidden="true"
+          className="size-7 shrink-0 text-muted"
+          strokeWidth={1.7}
+        />
+        {MODULE_LABELS[modulo]}
+      </h2>
       {siteOrigin ? (
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
           <QrCodeCard
             title="Clientes"
+            icon={UsersRound}
             value={clientUrl}
             filename={`efact-${empresaSlug}-${modulo}-clientes.png`}
           />
           <QrCodeCard
             title="Internos"
+            icon={UserRound}
             value={internalUrl}
             filename={`efact-${empresaSlug}-${modulo}-internos.png`}
           />
@@ -56,10 +80,12 @@ export function CompanyPageQrSection({
 
 function QrCodeCard({
   title,
+  icon: Icon,
   value,
   filename,
 }: {
   title: string;
+  icon: LucideIcon;
   value: string;
   filename: string;
 }) {
@@ -85,7 +111,14 @@ function QrCodeCard({
         className="absolute inset-0 z-10 rounded-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       />
       <div className="pointer-events-none relative z-0 flex flex-col items-center gap-4 text-foreground">
-        <h3 className="font-semibold">{title}</h3>
+        <h3 className="flex items-center gap-2 text-[19px] font-semibold">
+          <Icon
+            aria-hidden="true"
+            className="size-5 shrink-0 text-muted"
+            strokeWidth={1.7}
+          />
+          {title}
+        </h3>
         <div ref={qrContainerRef} className="rounded-input bg-white p-3">
           <QRCodeCanvas
             value={value}

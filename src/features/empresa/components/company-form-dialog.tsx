@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { DialogShell } from "@/components/ui/dialog-shell";
 import {
   createEmpresa,
@@ -13,6 +13,10 @@ import {
   toSlug,
 } from "@/features/empresa/utils/to-slug";
 import { CompanyFormFields } from "@/features/empresa/components/company-form-fields";
+import {
+  getCompanyAdminUser,
+  saveCompanyAdminUser,
+} from "@/features/empresa/services/company-admin-user.service";
 import {
   ACCEPTED_LOGO_MIME_TYPES,
   MAX_LOGO_SIZE_BYTES,
@@ -35,6 +39,15 @@ export function CompanyFormDialog({
   const [ubicacion, setUbicacion] = useState(empresa?.ubicacion ?? "");
   const [slugEdited, setSlugEdited] = useState(Boolean(empresa));
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [adminUsername, setAdminUsername] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminUserExists, setAdminUserExists] = useState(false);
+  const [isLoadingAdminUser, setIsLoadingAdminUser] = useState(Boolean(empresa));
+  const [adminUserLoadError, setAdminUserLoadError] = useState<string | null>(
+    null,
+  );
+  const [adminUserLoadAttempt, setAdminUserLoadAttempt] = useState(0);
+  const [createdEmpresaId, setCreatedEmpresaId] = useState<number | null>(null);
   const [tieneCarrito, setTieneCarrito] = useState(
     empresa?.tieneCarrito ?? false,
   );
@@ -53,6 +66,29 @@ export function CompanyFormDialog({
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  useEffect(() => {
+    if (!empresa) return;
+    const controller = new AbortController();
+    getCompanyAdminUser(empresa.id, controller.signal)
+      .then((adminUser) => {
+        setAdminUserExists(adminUser !== null);
+        setAdminUsername(adminUser?.nombre ?? "");
+      })
+      .catch((cause: unknown) => {
+        if (!controller.signal.aborted) {
+          setAdminUserLoadError(
+            cause instanceof Error
+              ? cause.message
+              : "No se pudo cargar el usuario Admin de la empresa.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoadingAdminUser(false);
+      });
+    return () => controller.abort();
+  }, [empresa, adminUserLoadAttempt]);
+
   function handleNombreChange(value: string) {
     setNombre(value);
     if (!slugEdited) setSlug(toSlug(value));
@@ -63,11 +99,26 @@ export function CompanyFormDialog({
     setSlug(normalizeSlugInput(value));
   }
 
+  function retryLoadAdminUser() {
+    setAdminUserLoadError(null);
+    setIsLoadingAdminUser(true);
+    setAdminUserLoadAttempt((attempt) => attempt + 1);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (isSaving) return;
 
     setError(null);
+    if (isLoadingAdminUser || adminUserLoadError) return;
+    if (!adminUsername.trim()) {
+      setError("Ingresá el nombre de usuario Admin de la empresa.");
+      return;
+    }
+    if (!adminUserExists && !adminPassword) {
+      setError("Ingresá una contraseña para el usuario Admin.");
+      return;
+    }
     if (logoFile && logoFile.size > MAX_LOGO_SIZE_BYTES) {
       setError("El logo no puede superar los 50 MB.");
       return;
@@ -115,22 +166,27 @@ export function CompanyFormDialog({
     };
 
     try {
+      let empresaId: number;
       if (empresa) {
         await updateEmpresa(empresa.id, input);
-        if (logoFile) await uploadEmpresaLogo(empresa.id, logoFile);
+        empresaId = empresa.id;
+      } else if (createdEmpresaId !== null) {
+        await updateEmpresa(createdEmpresaId, input);
+        empresaId = createdEmpresaId;
       } else {
         const createdEmpresa = await createEmpresa(input);
-        if (logoFile) {
-          try {
-            await uploadEmpresaLogo(createdEmpresa.id, logoFile);
-          } catch {
-            onSaved(
-              "La empresa se creó, pero no se pudo guardar el logo. Podés cargarlo desde Editar empresa.",
-            );
-            return;
-          }
-        }
+        empresaId = createdEmpresa.id;
+        setCreatedEmpresaId(createdEmpresa.id);
       }
+
+      await saveCompanyAdminUser(empresaId, {
+        nombre: adminUsername.trim(),
+        ...(adminPassword ? { contrasena: adminPassword } : {}),
+      });
+      setAdminUserExists(true);
+      setAdminPassword("");
+
+      if (logoFile) await uploadEmpresaLogo(empresaId, logoFile);
       onSaved();
     } catch (cause) {
       setError(
@@ -159,6 +215,14 @@ export function CompanyFormDialog({
           currentLogoUrl={empresa?.logo_url ?? null}
           logoFile={logoFile}
           onLogoFileChange={setLogoFile}
+          adminUsername={adminUsername}
+          onAdminUsernameChange={setAdminUsername}
+          adminPassword={adminPassword}
+          onAdminPasswordChange={setAdminPassword}
+          adminUserExists={adminUserExists}
+          isLoadingAdminUser={isLoadingAdminUser}
+          adminUserLoadError={adminUserLoadError}
+          onRetryAdminUserLoad={retryLoadAdminUser}
           tieneCarrito={tieneCarrito}
           onTieneCarritoChange={setTieneCarrito}
           catalogoHabilitado={catalogoHabilitado}
@@ -185,7 +249,7 @@ export function CompanyFormDialog({
           </button>
           <button
             type="submit"
-            disabled={isSaving}
+            disabled={isSaving || isLoadingAdminUser || Boolean(adminUserLoadError)}
             className="h-11 rounded-button bg-brand px-5 text-sm font-semibold text-brand-foreground transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSaving ? "Guardando..." : "Guardar"}

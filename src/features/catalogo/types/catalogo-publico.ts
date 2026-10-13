@@ -37,6 +37,7 @@ export interface CatalogoPublicoFilters {
   search?: string;
   codigoProveedor?: string;
   codigoInterno?: string;
+  codigoBarra?: string;
   articuloIds?: string[];
   marcaIds?: string[];
   rubroIds?: string[];

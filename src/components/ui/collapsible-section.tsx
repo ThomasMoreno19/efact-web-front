@@ -4,10 +4,12 @@ import { ChevronRight } from "lucide-react";
 export function CollapsibleSection({
   title,
   children,
+  icon,
   nested = false,
 }: {
   title: string;
   children: ReactNode;
+  icon?: ReactNode;
   nested?: boolean;
 }) {
   return (
@@ -23,7 +25,10 @@ export function CollapsibleSection({
           nested ? "py-1 text-base" : "p-6 text-lg sm:p-8"
         }`}
       >
-        <span>{title}</span>
+        <span className="flex min-w-0 items-center gap-3">
+          {icon ? <span className="shrink-0">{icon}</span> : null}
+          <span className="min-w-0 break-words">{title}</span>
+        </span>
         <ChevronRight
           aria-hidden="true"
           className={`size-5 shrink-0 text-muted transition-transform ${

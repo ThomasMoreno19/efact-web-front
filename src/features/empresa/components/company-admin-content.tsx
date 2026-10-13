@@ -32,7 +32,7 @@ export function CompanyAdminContent({
   return (
     <main className="min-w-0 flex-1 px-5 py-8 sm:px-8 sm:py-10 lg:px-12">
       <div className="mx-auto w-full max-w-5xl">
-        <header className="mb-8 border-b border-border pb-6">
+        <header className="mb-8 hidden border-b border-border pb-6 sm:block">
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">
             {section?.label}
           </h1>

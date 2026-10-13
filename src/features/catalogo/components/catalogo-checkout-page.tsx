@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { ArrowLeft, Minus, Plus, Trash2 } from 'lucide-react';
 import type { FormEvent } from 'react';
+import { CatalogoShareButton } from '@/features/catalogo/components/catalogo-share-button';
 import { Input } from '@/components/ui/input';
 import type {
   CatalogoItemCarrito,
@@ -17,6 +18,7 @@ import WhatsappLogo from '../../../../public/whatsapp.svg';
 
 export function CatalogoCarritoPage({
   items,
+  shareUrl,
   isLoading,
   error,
   onBack,
@@ -26,6 +28,7 @@ export function CatalogoCarritoPage({
   onRemove,
 }: {
   items: CatalogoItemCarrito[];
+  shareUrl: string;
   isLoading: boolean;
   error: string | null;
   onBack: () => void;
@@ -54,7 +57,12 @@ export function CatalogoCarritoPage({
       </div>
       <section className="overflow-hidden rounded-card border border-border bg-surface">
         <div className="flex justify-center border-b border-border px-4 py-4 sm:px-8">
-          <h2 className="text-center text-lg font-semibold">Tu pedido</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-center text-lg font-semibold">Tu pedido</h2>
+            {!isLoading && items.length > 0 ? (
+              <CatalogoShareButton href={shareUrl} title="Tu pedido" />
+            ) : null}
+          </div>
         </div>
 
         <div className="space-y-4 p-4 pb-36 sm:p-8 sm:pb-36">

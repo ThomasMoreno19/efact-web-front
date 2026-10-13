@@ -5,7 +5,10 @@ import {
 } from "@/features/auth/services/admin-session.service";
 import { CompanyAdministration } from "@/features/empresa/components/company-administration";
 import { getEmpresaPublicaBySlug } from "@/features/empresa/services/empresa-public-query.service";
-import { getAllEmpresas } from "@/features/empresa/services/empresa-query.service";
+import {
+  getAllEmpresas,
+  getEmpresaById,
+} from "@/features/empresa/services/empresa-query.service";
 import { redirect } from "next/navigation";
 
 interface CompanyAdministrationPageProps {
@@ -29,12 +32,20 @@ export default async function CompanyAdministrationPage({
 
   const session = await getAdminSession();
   if (!session) redirect("/administracion/login");
+  if (
+    session.role === "Admin" &&
+    (session.empresaSlug !== slug || session.id_empresa !== publicEmpresa.id)
+  ) {
+    redirect(`/${session.empresaSlug}/administracion`);
+  }
 
   const token = await getAdminAccessToken();
   if (!token) redirect("/administracion/login");
 
-  const empresas = await getAllEmpresas(token);
-  const empresa = empresas.find((item) => item.slug === slug);
+  const empresa =
+    session.role === "Superadmin"
+      ? (await getAllEmpresas(token)).find((item) => item.slug === slug)
+      : await getEmpresaById(publicEmpresa.id, token);
   if (!empresa) redirect("/");
 
   return (

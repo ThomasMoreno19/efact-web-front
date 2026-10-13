@@ -1,17 +1,16 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { CompanyLogo } from "@/features/empresa/components/company-logo";
+import { BarcodeScannerButton } from "@/features/articulo/components/barcode-scanner-button";
 import { InternalCatalogList } from "@/features/interno/components/internal-catalog-list";
 import { InternalBalancesList } from "@/features/interno/components/internal-balances-list";
 import {
   getInternalSession,
   InternalRequestError,
   loginInterno,
-  logoutInterno,
 } from "@/features/interno/services/interno-client.service";
 import type { EmpresaPublica } from "@/features/empresa/types/empresa";
 import type { InternalSession } from "@/features/interno/types/interno";
@@ -28,11 +27,15 @@ export function InternalModulePage({
   const [session, setSession] = useState<InternalSession | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [nombre, setNombre] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
+  const [barcodeScan, setBarcodeScan] = useState<{
+    value: string;
+    sequence: number;
+  } | null>(null);
+  const barcodeScanSequence = useRef(0);
 
   useEffect(() => {
     getInternalSession(empresa.id)
@@ -69,27 +72,8 @@ export function InternalModulePage({
     }
   }
 
-  async function handleLogout() {
-    if (isLoggingOut) return;
-    setIsLoggingOut(true);
-    setPageError(null);
-    try {
-      await logoutInterno(empresa.id);
-      setSession(null);
-      setNombre("");
-      setContrasena("");
-    } catch (cause) {
-      setPageError(
-        cause instanceof Error
-          ? cause.message
-          : "No se pudo cerrar la sesión.",
-      );
-    } finally {
-      setIsLoggingOut(false);
-    }
-  }
-
   const moduleLabel = modulo === "catalogo" ? "Catálogo interno" : "Saldos internos";
+  const catalogoInternoActivo = session !== null && modulo === "catalogo";
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -102,44 +86,26 @@ export function InternalModulePage({
             <p className="truncate font-semibold">{empresa.nombre}</p>
             <p className="text-sm text-muted">{moduleLabel}</p>
           </div>
-          {session ? (
-            <button
-              type="button"
-              onClick={() => void handleLogout()}
-              disabled={isLoggingOut}
-              className="min-h-10 shrink-0 rounded-button border border-border px-3 text-sm font-medium transition hover:bg-surface-raised disabled:opacity-60 sm:px-4"
-            >
-              {isLoggingOut ? "Saliendo…" : "Cerrar sesión"}
-            </button>
+          {session && modulo === "catalogo" && empresa.incluirCodigoBarra ? (
+            <BarcodeScannerButton
+              className="ml-auto"
+              onDetected={(value) => {
+                barcodeScanSequence.current += 1;
+                setBarcodeScan({
+                  value,
+                  sequence: barcodeScanSequence.current,
+                });
+              }}
+            />
           ) : null}
         </div>
       </header>
 
-      <div className="mx-auto w-full max-w-6xl space-y-6 px-5 py-8 sm:px-8 sm:py-10">
-        {session ? (
-          <nav
-            aria-label="Páginas internas"
-            className="flex flex-wrap gap-3 border-b border-border pb-5"
-          >
-            {empresa.catalogoHabilitado ? (
-              <InternalNavLink
-                active={modulo === "catalogo"}
-                href={`/${empresa.slug}/catalogo/interno`}
-              >
-                Catálogo interno
-              </InternalNavLink>
-            ) : null}
-            {empresa.saldosHabilitados ? (
-              <InternalNavLink
-                active={modulo === "saldo"}
-                href={`/${empresa.slug}/saldo/interno`}
-              >
-                Saldos internos
-              </InternalNavLink>
-            ) : null}
-          </nav>
-        ) : null}
-
+      <div
+        className={`mx-auto w-full max-w-6xl space-y-6 px-5 pb-8 sm:px-8 sm:py-10 ${
+          catalogoInternoActivo ? "pt-0" : "pt-8"
+        }`}
+      >
         {isCheckingSession ? (
           <p role="status" className="text-sm text-muted">
             Verificando acceso…
@@ -204,36 +170,20 @@ export function InternalModulePage({
         ) : null}
 
         {session && modulo === "catalogo" ? (
-          <InternalCatalogList empresaId={empresa.id} />
+          <InternalCatalogList
+            empresaId={empresa.id}
+            empresaSlug={empresa.slug}
+            telefono={empresa.telefono}
+            nombreUsuario={session.nombre}
+            toleranciaMinDias={empresa.toleranciaMinDias}
+            toleranciaMaxDias={empresa.toleranciaMaxDias}
+            barcodeScan={barcodeScan}
+          />
         ) : null}
         {session && modulo === "saldo" ? (
           <InternalBalancesList empresaId={empresa.id} />
         ) : null}
       </div>
     </main>
-  );
-}
-
-function InternalNavLink({
-  href,
-  active,
-  children,
-}: {
-  href: string;
-  active: boolean;
-  children: string;
-}) {
-  return (
-    <Link
-      href={href}
-      aria-current={active ? "page" : undefined}
-      className={`inline-flex min-h-10 items-center rounded-button border px-4 text-sm font-medium transition ${
-        active
-          ? "border-brand bg-brand/10 text-brand"
-          : "border-border text-muted hover:bg-surface-raised"
-      }`}
-    >
-      {children}
-    </Link>
   );
 }

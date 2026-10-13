@@ -14,12 +14,17 @@ import { fetchBackend } from "@/services/backend-api";
 export interface BackendAuthTokens {
   accessToken: string;
   accessTokenMaxAgeSeconds: number;
+  refreshToken?: string;
+  refreshTokenMaxAgeSeconds?: number;
+}
+
+export interface BackendAuthRefreshTokens extends BackendAuthTokens {
   refreshToken: string;
   refreshTokenMaxAgeSeconds: number;
 }
 
 export type BackendAuthRefreshResult =
-  | { status: "refreshed"; tokens: BackendAuthTokens }
+  | { status: "refreshed"; tokens: BackendAuthRefreshTokens }
   | { status: "invalid" }
   | { status: "unavailable" };
 
@@ -32,16 +37,32 @@ export function readBackendAuthTokens(headers: Headers): BackendAuthTokens | nul
   const setCookies = headers.getSetCookie();
   const accessToken = readCookie(setCookies, "access_token");
   const refreshToken = readCookie(setCookies, "refresh_token");
-  if (!accessToken || !refreshToken) return null;
+  if (!accessToken) return null;
 
-  return {
+  const tokens: BackendAuthTokens = {
     accessToken: accessToken.value,
     accessTokenMaxAgeSeconds:
       accessToken.maxAge ?? ADMIN_SESSION_MAX_AGE_SECONDS,
-    refreshToken: refreshToken.value,
-    refreshTokenMaxAgeSeconds:
-      refreshToken.maxAge ?? ADMIN_REFRESH_MAX_AGE_SECONDS,
   };
+  if (refreshToken) {
+    tokens.refreshToken = refreshToken.value;
+    tokens.refreshTokenMaxAgeSeconds =
+      refreshToken.maxAge ?? ADMIN_REFRESH_MAX_AGE_SECONDS;
+  }
+  return tokens;
+}
+
+export function readBackendAuthRefreshTokens(
+  headers: Headers,
+): BackendAuthRefreshTokens | null {
+  const tokens = readBackendAuthTokens(headers);
+  if (
+    !tokens?.refreshToken ||
+    tokens.refreshTokenMaxAgeSeconds === undefined
+  ) {
+    return null;
+  }
+  return tokens as BackendAuthRefreshTokens;
 }
 
 export function setAdminAuthCookies(
@@ -56,18 +77,31 @@ export function setAdminAuthCookies(
     path: "/",
     maxAge: tokens.accessTokenMaxAgeSeconds,
   });
-  response.cookies.set(ADMIN_REFRESH_COOKIE, tokens.refreshToken, {
-    httpOnly: true,
-    secure,
-    sameSite: "lax",
-    path: "/",
-    maxAge: tokens.refreshTokenMaxAgeSeconds,
-  });
+  if (
+    tokens.refreshToken &&
+    tokens.refreshTokenMaxAgeSeconds !== undefined
+  ) {
+    response.cookies.set(ADMIN_REFRESH_COOKIE, tokens.refreshToken, {
+      httpOnly: true,
+      secure,
+      sameSite: "lax",
+      path: "/",
+      maxAge: tokens.refreshTokenMaxAgeSeconds,
+    });
+  } else {
+    response.cookies.set(ADMIN_REFRESH_COOKIE, "", {
+      httpOnly: true,
+      secure,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 0,
+    });
+  }
 }
 
 export function setInternalAuthCookies(
   response: NextResponse,
-  tokens: BackendAuthTokens,
+  tokens: BackendAuthRefreshTokens,
 ): void {
   const secure = process.env.NODE_ENV === "production";
   response.cookies.set(INTERNAL_SESSION_COOKIE, tokens.accessToken, {
@@ -141,7 +175,7 @@ async function requestBackendAuthRefresh(
     }
     if (!response.ok) return { status: "unavailable" };
 
-    const tokens = readBackendAuthTokens(response.headers);
+    const tokens = readBackendAuthRefreshTokens(response.headers);
     return tokens
       ? { status: "refreshed", tokens }
       : { status: "unavailable" };

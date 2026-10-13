@@ -40,15 +40,25 @@ async function validateAdminSession(
     if (!response.ok) return null;
 
     const session = (await response.json()) as Partial<AdminSession>;
-    if (
-      !Number.isInteger(session.id) ||
-      typeof session.nombre !== "string" ||
-      session.role !== "Superadmin"
-    ) {
+    if (!Number.isSafeInteger(session.id) || typeof session.nombre !== "string") {
       return null;
     }
-
-    return session as AdminSession;
+    if (
+      session.role === "Superadmin" &&
+      session.id_empresa === null &&
+      session.empresaSlug === null
+    ) {
+      return session as AdminSession;
+    }
+    if (
+      session.role === "Admin" &&
+      Number.isSafeInteger(session.id_empresa) &&
+      typeof session.empresaSlug === "string" &&
+      session.empresaSlug.length > 0
+    ) {
+      return session as AdminSession;
+    }
+    return null;
   } catch {
     return null;
   }

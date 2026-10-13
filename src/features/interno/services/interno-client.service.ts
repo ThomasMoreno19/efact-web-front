@@ -1,7 +1,11 @@
 import { INTERNAL_PAGE_SIZE } from "@/features/interno/constants/internal-page-size";
 import type {
   CatalogoInternoArticulo,
+  CatalogoInternoCategoria,
+  CatalogoInternoFiltros,
+  CatalogoInternoLista,
   CatalogoInternoPagina,
+  CatalogoInternoRelacion,
   InternalSession,
   SaldoInternoCliente,
 } from "@/features/interno/types/interno";
@@ -58,20 +62,37 @@ export async function logoutInterno(empresaId: number) {
 
 export async function getCatalogoInternoPage(
   empresaId: number,
+  lista: CatalogoInternoLista,
   offset: number,
+  filters: CatalogoInternoFiltros = {},
   signal?: AbortSignal,
 ): Promise<CatalogoInternoPagina> {
   const query = new URLSearchParams({
     offset: String(offset),
     limit: String(INTERNAL_PAGE_SIZE),
+    lista,
   });
+  if (filters.search?.trim()) query.set("search", filters.search.trim());
+  if (filters.codigoProveedor?.trim()) {
+    query.set("codigoProveedor", filters.codigoProveedor.trim());
+  }
+  if (filters.codigoInterno?.trim()) {
+    query.set("codigoInterno", filters.codigoInterno.trim());
+  }
+  if (filters.codigoBarra?.trim()) {
+    query.set("codigoBarra", filters.codigoBarra.trim());
+  }
+  filters.marcaIds?.forEach((id) => query.append("marcaId", String(id)));
+  filters.rubroIds?.forEach((id) => query.append("rubroId", String(id)));
+  filters.proveedorIds?.forEach((id) => query.append("proveedorId", String(id)));
+  filters.ubicacionIds?.forEach((id) => query.append("ubicacionId", String(id)));
   const response = await fetch(
     `/api/internal/empresas/${empresaId}/catalogo?${query.toString()}`,
     { cache: "no-store", signal },
   );
   const payload = await response.json().catch(() => null);
   if (!response.ok) throw toError(payload, response.status);
-  if (!isCatalogoInternoPagina(payload)) {
+  if (!isCatalogoInternoPagina(payload, lista)) {
     throw new Error("La respuesta del catálogo interno no es válida.");
   }
   return payload;
@@ -104,12 +125,18 @@ function isInternalSession(value: unknown): value is InternalSession {
   );
 }
 
-function isCatalogoInternoPagina(value: unknown): value is CatalogoInternoPagina {
+function isCatalogoInternoPagina(
+  value: unknown,
+  lista: CatalogoInternoLista,
+): value is CatalogoInternoPagina {
   if (typeof value !== "object" || value === null) return false;
   const page = value as Partial<CatalogoInternoPagina>;
+  const isArticleList = lista === "articulos" || lista === "ofertas";
   return (
     Array.isArray(page.records) &&
-    page.records.every(isCatalogoInternoArticulo) &&
+    page.records.every((record) =>
+      isArticleList ? isCatalogoInternoArticulo(record) : isCatalogoInternoCategoria(record),
+    ) &&
     Number.isSafeInteger(page.total) &&
     (page.total as number) >= 0 &&
     typeof page.hasMore === "boolean"
@@ -124,13 +151,45 @@ function isCatalogoInternoArticulo(
   return (
     typeof articulo.id === "string" &&
     Number.isSafeInteger(articulo.codigoInterno) &&
+    isNullableString(articulo.codigoProveedor) &&
+    isNullableString(articulo.codigoBarra) &&
     typeof articulo.nombre === "string" &&
+    isNullableString(articulo.logoUrl) &&
     isNullableNumber(articulo.precio1) &&
     isNullableNumber(articulo.precio2) &&
     isNullableNumber(articulo.precio3) &&
     Number.isSafeInteger(articulo.existencia) &&
-    typeof articulo.tieneExistencia === "boolean"
+    typeof articulo.tieneExistencia === "boolean" &&
+    isNullableNumber(articulo.minimaExistencia) &&
+    isNullableNumber(articulo.maximaExistencia) &&
+    typeof articulo.oferta === "boolean" &&
+    isNullableString(articulo.actualizadoEn) &&
+    isNullableCatalogoRelacion(articulo.marca) &&
+    isNullableCatalogoRelacion(articulo.rubro) &&
+    isNullableCatalogoRelacion(articulo.proveedor) &&
+    isNullableCatalogoRelacion(articulo.ubicacion)
   );
+}
+
+function isCatalogoInternoCategoria(
+  value: unknown,
+): value is CatalogoInternoCategoria {
+  if (typeof value !== "object" || value === null) return false;
+  const categoria = value as Partial<CatalogoInternoCategoria>;
+  return (
+    Number.isSafeInteger(categoria.id) &&
+    typeof categoria.nombre === "string" &&
+    isNullableString(categoria.logoUrl)
+  );
+}
+
+function isNullableCatalogoRelacion(
+  value: unknown,
+): value is CatalogoInternoRelacion | null {
+  if (value === null) return true;
+  if (typeof value !== "object") return false;
+  const relacion = value as Partial<CatalogoInternoRelacion>;
+  return Number.isSafeInteger(relacion.id) && typeof relacion.nombre === "string";
 }
 
 function isSaldoInternoCliente(value: unknown): value is SaldoInternoCliente {

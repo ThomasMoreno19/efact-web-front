@@ -10,6 +10,7 @@ export interface Empresa {
   catalogoHabilitado: boolean;
   saldosHabilitados: boolean;
   reparacionesHabilitadas: boolean;
+  mostrarNavegacionPaginas: boolean;
   imagenesEnArticulos: boolean;
   incluirHorarios: boolean;
   pedidosFueraHorario: boolean;
@@ -29,6 +30,8 @@ export interface EmpresaPublica {
   catalogoHabilitado: boolean;
   saldosHabilitados: boolean;
   reparacionesHabilitadas: boolean;
+  mostrarNavegacionPaginas: boolean;
+  incluirCodigoBarra: boolean;
   toleranciaMinDias: number | null;
   toleranciaMaxDias: number | null;
 }
@@ -43,6 +46,16 @@ export interface EmpresaInput {
   catalogoHabilitado: boolean;
   saldosHabilitados: boolean;
   reparacionesHabilitadas: boolean;
+}
+
+export interface EmpresaInformationInput {
+  nombre: string;
+  telefono: string | null;
+  ubicacion: string | null;
+}
+
+export interface EmpresaPageNavigationInput {
+  mostrarNavegacionPaginas: boolean;
 }
 
 export interface EmpresaConfiguracionCatalogoInput {

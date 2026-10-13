@@ -12,6 +12,7 @@ import type {
   TipoBusquedaReparacion,
 } from "@/features/reparacion/types/reparacion";
 import { CompanyLogo } from "@/features/empresa/components/company-logo";
+import { CompanyPublicPageNavigation } from "@/features/empresa/components/company-public-page-navigation";
 import type { EmpresaPublica } from "@/features/empresa/types/empresa";
 
 interface ReparacionConsultaPageProps {
@@ -103,6 +104,10 @@ export function ReparacionConsultaPage({
     <main className="flex min-h-screen flex-col bg-background text-foreground">
       <header className="border-b border-border">
         <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-5 py-4 sm:px-8">
+          <CompanyPublicPageNavigation
+            empresa={empresa}
+            currentPage="reparacion"
+          />
           <div className="relative size-12 shrink-0 overflow-hidden rounded-card border border-border bg-surface">
             <CompanyLogo empresa={empresa} />
           </div>

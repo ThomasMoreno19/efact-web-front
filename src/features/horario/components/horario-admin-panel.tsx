@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
+import { Clock } from "lucide-react";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { DialogShell } from "@/components/ui/dialog-shell";
 import { Input } from "@/components/ui/input";
@@ -171,7 +172,16 @@ export function HorarioAdminPanel({ empresaId }: { empresaId: number }) {
   const scheduleGroups = groupSchedulesByHours(horarios);
 
   return (
-    <CollapsibleSection title="Horarios de atención">
+    <CollapsibleSection
+      title="Horarios de atención"
+      icon={
+        <Clock
+          aria-hidden="true"
+          className="size-6 text-muted"
+          strokeWidth={1.7}
+        />
+      }
+    >
       <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
         <p className="max-w-2xl text-sm leading-6 text-muted">
           Consultá los días y horarios en que está abierta la empresa.

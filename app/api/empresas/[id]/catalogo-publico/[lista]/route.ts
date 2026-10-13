@@ -21,6 +21,7 @@ export async function GET(request: Request, { params }: RouteContext) {
   const search = searchParams.get('search') ?? '';
   const codigoProveedor = searchParams.get('codigoProveedor') ?? '';
   const codigoInterno = searchParams.get('codigoInterno') ?? '';
+  const codigoBarra = searchParams.get('codigoBarra') ?? '';
   const articuloIds = searchParams.getAll('articuloId');
   const marcaIds = searchParams.getAll('marcaId');
   const rubroIds = searchParams.getAll('rubroId');
@@ -44,6 +45,9 @@ export async function GET(request: Request, { params }: RouteContext) {
   ) {
     return invalidRequest('El código interno no es válido.', 400);
   }
+  if (codigoBarra.length > 20) {
+    return invalidRequest('El código de barras no puede superar 20 caracteres.', 400);
+  }
   if (!areValidFilterIds(marcaIds) || !areValidFilterIds(rubroIds)) {
     return invalidRequest('Los filtros de marca o rubro no son válidos.', 400);
   }
@@ -58,6 +62,7 @@ export async function GET(request: Request, { params }: RouteContext) {
   if (search) query.set('search', search);
   if (codigoProveedor) query.set('codigoProveedor', codigoProveedor);
   if (codigoInterno) query.set('codigoInterno', codigoInterno);
+  if (codigoBarra) query.set('codigoBarra', codigoBarra);
   articuloIds.forEach((id) => query.append('articuloId', id));
   marcaIds.forEach((id) => query.append('marcaId', id));
   rubroIds.forEach((id) => query.append('rubroId', id));

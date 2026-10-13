@@ -6,14 +6,18 @@ import { getAdminSession } from "@/features/auth/services/admin-session.service"
 import Logo from "../../../public/Logo.png";
 
 export const metadata: Metadata = {
-  title: "Acceso de superadmin | E-fact",
-  description: "Iniciá sesión para administrar las empresas de E-fact.",
+  title: "Acceso de administración | E-fact",
+  description: "Iniciá sesión para administrar E-fact.",
 };
 
 export default async function AdminLoginPage() {
   const session = await getAdminSession();
   if (session) {
-    redirect("/admin");
+    redirect(
+      session.role === "Superadmin"
+        ? "/admin"
+        : `/${session.empresaSlug}/administracion`,
+    );
   }
 
   return (
@@ -45,7 +49,7 @@ export default async function AdminLoginPage() {
 
           <div className="mb-8 space-y-2">
             <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-              Acceso de Adminitración
+              Acceso de Administración
             </h1>
           </div>
 

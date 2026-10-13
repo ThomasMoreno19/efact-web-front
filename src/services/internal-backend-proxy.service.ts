@@ -9,7 +9,7 @@ import {
   refreshBackendAuthTokens,
   setInternalAuthCookies,
 } from "@/features/auth/services/auth-token-cookie.service";
-import type { BackendAuthTokens } from "@/features/auth/services/auth-token-cookie.service";
+import type { BackendAuthRefreshTokens } from "@/features/auth/services/auth-token-cookie.service";
 import { fetchBackend } from "@/services/backend-api";
 
 type InternalBackendMethod = "GET" | "POST";
@@ -25,7 +25,7 @@ export async function proxyInternalBackendRequest(
   const cookieStore = await cookies();
   let accessToken = cookieStore.get(INTERNAL_SESSION_COOKIE)?.value;
   const refreshToken = cookieStore.get(INTERNAL_REFRESH_COOKIE)?.value;
-  let refreshedTokens: BackendAuthTokens | null = null;
+  let refreshedTokens: BackendAuthRefreshTokens | null = null;
 
   if (!accessToken) {
     if (!refreshToken) return expiredSession();
@@ -82,7 +82,7 @@ function requestBackend(
 
 async function forwardBackendResponse(
   backendResponse: Response,
-  refreshedTokens: BackendAuthTokens | null,
+  refreshedTokens: BackendAuthRefreshTokens | null,
 ) {
   const responseBody = await backendResponse.text();
   const response = new NextResponse(responseBody || null, {

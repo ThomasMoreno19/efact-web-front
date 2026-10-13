@@ -10,6 +10,10 @@ interface LoginRequestBody {
   contrasena: string;
 }
 
+type BackendLoginResult =
+  | { role: "Superadmin"; empresaSlug: null }
+  | { role: "Admin"; empresaSlug: string };
+
 export async function handleAdminLogin(request: Request) {
   let body: unknown;
   try {
@@ -32,7 +36,7 @@ export async function handleAdminLogin(request: Request) {
       return NextResponse.json(
         {
           message:
-            "El usuario o la contraseña son incorrectos, o la cuenta no es superadmin.",
+            "El usuario o la contraseña son incorrectos.",
         },
         { status: 401 },
       );
@@ -53,7 +57,23 @@ export async function handleAdminLogin(request: Request) {
       );
     }
 
-    const response = NextResponse.json({ authenticated: true });
+    const loginResult = (await backendResponse.json().catch(() => null)) as
+      | BackendLoginResult
+      | null;
+    if (!isBackendLoginResult(loginResult)) {
+      return NextResponse.json(
+        { message: "El servidor devolvió una respuesta de sesión inválida." },
+        { status: 502 },
+      );
+    }
+    if (loginResult.role === "Admin" && !tokens.refreshToken) {
+      return NextResponse.json(
+        { message: "El servidor devolvió una respuesta de sesión inválida." },
+        { status: 502 },
+      );
+    }
+
+    const response = NextResponse.json({ authenticated: true, ...loginResult });
     setAdminAuthCookies(response, tokens);
     return response;
   } catch {
@@ -80,5 +100,18 @@ function isLoginRequestBody(value: unknown): value is LoginRequestBody {
     body.nombre.trim().length > 0 &&
     typeof body.contrasena === "string" &&
     body.contrasena.length > 0
+  );
+}
+
+function isBackendLoginResult(value: unknown): value is BackendLoginResult {
+  if (typeof value !== "object" || value === null || !("role" in value)) {
+    return false;
+  }
+  const result = value as { role?: unknown; empresaSlug?: unknown };
+  return (
+    (result.role === "Superadmin" && result.empresaSlug === null) ||
+    (result.role === "Admin" &&
+      typeof result.empresaSlug === "string" &&
+      result.empresaSlug.length > 0)
   );
 }

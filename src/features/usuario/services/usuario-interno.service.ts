@@ -41,6 +41,39 @@ export async function createUsuarioInterno(
   return payload;
 }
 
+export async function updateUsuarioInterno(
+  empresaId: number,
+  usuarioId: number,
+  input: { nombre: string; contrasena?: string },
+): Promise<UsuarioInterno> {
+  const response = await fetchWithAdminSession(
+    `/api/admin/empresas/${empresaId}/usuarios-internos/${usuarioId}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    },
+  );
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(getError(payload));
+  if (!isUsuarioInterno(payload)) {
+    throw new Error("La respuesta del usuario interno no es válida.");
+  }
+  return payload;
+}
+
+export async function deleteUsuarioInterno(
+  empresaId: number,
+  usuarioId: number,
+): Promise<void> {
+  const response = await fetchWithAdminSession(
+    `/api/admin/empresas/${empresaId}/usuarios-internos/${usuarioId}`,
+    { method: "DELETE" },
+  );
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(getError(payload));
+}
+
 function isUsuarioInterno(value: unknown): value is UsuarioInterno {
   if (typeof value !== "object" || value === null) return false;
   const usuario = value as Partial<UsuarioInterno>;

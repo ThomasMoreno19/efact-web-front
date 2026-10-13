@@ -1,10 +1,20 @@
 interface LoginResult {
+  authenticated?: boolean;
+  role?: "Superadmin" | "Admin";
+  empresaSlug?: string | null;
   message?: string;
 }
 
 let pendingAdminRefresh: Promise<Response> | null = null;
 
-export async function loginSuperadmin(nombre: string, contrasena: string) {
+export type AdminLoginResult =
+  | { role: "Superadmin" }
+  | { role: "Admin"; empresaSlug: string };
+
+export async function loginAdmin(
+  nombre: string,
+  contrasena: string,
+): Promise<AdminLoginResult> {
   const response = await fetch("/api/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -17,6 +27,15 @@ export async function loginSuperadmin(nombre: string, contrasena: string) {
       result?.message ?? "No se pudo iniciar sesión. Intentá nuevamente.",
     );
   }
+  if (result?.role === "Superadmin") return { role: "Superadmin" };
+  if (
+    result?.role === "Admin" &&
+    typeof result.empresaSlug === "string" &&
+    result.empresaSlug.length > 0
+  ) {
+    return { role: "Admin", empresaSlug: result.empresaSlug };
+  }
+  throw new Error("El servidor devolvió una sesión inválida.");
 }
 
 export async function refreshAdminSession(): Promise<Response> {

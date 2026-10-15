@@ -16,12 +16,14 @@ import InvisibleImage from "../../../../public/transparent.svg";
 export function CatalogoRegistroDetalleModal({
   articulo,
   shareUrl,
+  mostrarImagen,
   toleranciaMinDias,
   toleranciaMaxDias,
   onClose,
 }: {
   articulo: CatalogoRegistroPublico;
   shareUrl: string | null;
+  mostrarImagen: boolean;
   toleranciaMinDias: number | null;
   toleranciaMaxDias: number | null;
   onClose: () => void;
@@ -61,7 +63,7 @@ export function CatalogoRegistroDetalleModal({
       onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
-      className="m-auto max-h-none w-[calc(100%-2rem)] max-w-4xl overflow-visible border-0 bg-transparent p-0 text-foreground backdrop:bg-black/75"
+      className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-4xl overflow-y-auto overscroll-contain border-0 bg-transparent p-0 text-foreground backdrop:bg-black/75"
     >
       <section className="rounded-card border border-border bg-surface p-5 shadow-2xl sm:p-8">
         <div className="mb-6 flex items-start justify-between gap-4">
@@ -86,10 +88,14 @@ export function CatalogoRegistroDetalleModal({
           </div>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
-          <div className="relative mx-auto aspect-square w-full max-w-[24rem] overflow-hidden rounded-record bg-surface-raised">
-            <DetailImage source={imageUrl} alt={articleName} />
-          </div>
+        <div
+          className={`grid gap-6 ${mostrarImagen ? 'sm:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]' : ''}`}
+        >
+          {mostrarImagen ? (
+            <div className="relative mx-auto aspect-square w-full max-w-[24rem] overflow-hidden rounded-record bg-surface-raised">
+              <DetailImage source={imageUrl} alt={articleName} />
+            </div>
+          ) : null}
 
           <div className="min-w-0">
             <dl className="grid gap-4 sm:grid-cols-2">

@@ -21,13 +21,12 @@ export class InternalRequestError extends Error {
 
 export async function loginInterno(
   empresaId: number,
-  nombre: string,
   contrasena: string,
 ) {
   const response = await fetch("/api/auth/internal-login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ empresaId, nombre, contrasena }),
+    body: JSON.stringify({ empresaId, contrasena }),
     cache: "no-store",
   });
   const payload = await response.json().catch(() => null);
@@ -120,7 +119,6 @@ function isInternalSession(value: unknown): value is InternalSession {
   return (
     Number.isSafeInteger(session.id) &&
     Number.isSafeInteger(session.idEmpresa) &&
-    typeof session.nombre === "string" &&
     session.role === "Interno"
   );
 }
@@ -189,7 +187,11 @@ function isNullableCatalogoRelacion(
   if (value === null) return true;
   if (typeof value !== "object") return false;
   const relacion = value as Partial<CatalogoInternoRelacion>;
-  return Number.isSafeInteger(relacion.id) && typeof relacion.nombre === "string";
+  return (
+    Number.isSafeInteger(relacion.id) &&
+    typeof relacion.nombre === "string" &&
+    (relacion.abreviatura === undefined || isNullableString(relacion.abreviatura))
+  );
 }
 
 function isSaldoInternoCliente(value: unknown): value is SaldoInternoCliente {

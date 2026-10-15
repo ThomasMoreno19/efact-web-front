@@ -24,7 +24,7 @@ export function UsuarioInternoCard({
         <div ref={menuRef} className="absolute right-3 top-3 z-20">
           <button
             type="button"
-            aria-label={`Opciones de ${usuario.nombre}`}
+            aria-label={`Opciones del usuario interno ${usuario.id}`}
             aria-haspopup="menu"
             aria-expanded={isMenuOpen}
             onClick={() => setIsMenuOpen((open) => !open)}
@@ -72,7 +72,7 @@ export function UsuarioInternoCard({
           strokeWidth={1.6}
         />
         <p className="mt-3 max-w-full break-all text-sm font-semibold">
-          {usuario.nombre}
+          Usuario interno {usuario.id}
         </p>
       </article>
     </li>

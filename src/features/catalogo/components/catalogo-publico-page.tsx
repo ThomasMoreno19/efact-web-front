@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowUp,
   BadgePercent,
+  Info,
   Search,
   Shapes,
   ShoppingCart,
@@ -22,6 +23,9 @@ import { CompanyLogo } from '@/features/empresa/components/company-logo';
 import { CompanyPublicPageNavigation } from '@/features/empresa/components/company-public-page-navigation';
 import { BarcodeScannerButton } from '@/features/articulo/components/barcode-scanner-button';
 import type { EmpresaPublica } from '@/features/empresa/types/empresa';
+import { getHorariosPublicos } from '@/features/horario/services/horario-public.service';
+import type { Horario } from '@/features/horario/types/horario';
+import { estaDentroDeHorario } from '@/features/horario/utils/horario-disponibilidad';
 import {
   getArticuloStockStatus,
   type ArticuloStockStatus,
@@ -111,6 +115,10 @@ export function CatalogoPublicoPage({
   const [isCompactHeader, setIsCompactHeader] = useState(false);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<'catalogo' | 'carrito' | 'cliente'>(initialView);
+  const [horarios, setHorarios] = useState<Horario[] | null>(null);
+  const [horarioError, setHorarioError] = useState<string | null>(null);
+  const [horarioRetryKey, setHorarioRetryKey] = useState(0);
+  const [horaActual, setHoraActual] = useState<Date | null>(null);
   const [cartItems, setCartItems] = useState<CatalogoItemCarrito[]>([]);
   const [hydratedCartKey, setHydratedCartKey] = useState<string | null>(
     initialCartEntries.length === 0 ? initialCartEntriesKey : null,
@@ -134,6 +142,17 @@ export function CatalogoPublicoPage({
   const isCartRoute = initialView === 'carrito';
   const compactHeader = isCartRoute || isCompactHeader;
   const isCartLoading = hydratedCartKey !== initialCartEntriesKey;
+  const verificarHorario =
+    checkoutStep === 'carrito' && !empresa.pedidosFueraHorario;
+  const estadoHorario = !verificarHorario
+    ? 'habilitado'
+    : horarioError !== null
+      ? 'error'
+      : horarios === null || horaActual === null
+        ? 'consultando'
+        : estaDentroDeHorario(horarios, horaActual)
+          ? 'habilitado'
+          : 'fuera-horario';
   const showCartButton =
     empresa.tieneCarrito && cartItems.length > 0 && checkoutStep === 'catalogo';
 
@@ -176,7 +195,7 @@ export function CatalogoPublicoPage({
         );
         const restoredItems = entries.flatMap((entry) => {
           const articulo = articlesById.get(entry.id);
-          if (!articulo) return [];
+          if (!articulo || isArticleUnavailable(articulo)) return [];
           const updateDateStatus = getUpdateDateStatus(
             articulo.actualizado_en,
             empresa.toleranciaMinDias,
@@ -228,6 +247,39 @@ export function CatalogoPublicoPage({
   }, [initialView]);
 
   useEffect(() => {
+    if (!verificarHorario) return;
+    let cancelled = false;
+    setHorarios(null);
+    setHorarioError(null);
+
+    getHorariosPublicos(empresa.id)
+      .then((result) => {
+        if (!cancelled) setHorarios(result);
+      })
+      .catch((cause: unknown) => {
+        if (!cancelled) {
+          setHorarioError(
+            cause instanceof Error
+              ? cause.message
+              : 'No se pudo consultar el horario de atención.',
+          );
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [empresa.id, horarioRetryKey, verificarHorario]);
+
+  useEffect(() => {
+    if (!verificarHorario) return;
+    const updateCurrentTime = () => setHoraActual(new Date());
+    updateCurrentTime();
+    const interval = window.setInterval(updateCurrentTime, 30_000);
+    return () => window.clearInterval(interval);
+  }, [verificarHorario]);
+
+  useEffect(() => {
     if (isCartLoading || (cartLoadError !== null && cartItems.length === 0)) {
       return;
     }
@@ -262,6 +314,7 @@ export function CatalogoPublicoPage({
   }, [checkoutStep]);
 
   function toggleCartItem(articulo: CatalogoRegistroPublico) {
+    if (isArticleUnavailable(articulo)) return;
     const updateDateStatus = getUpdateDateStatus(
       articulo.actualizado_en,
       empresa.toleranciaMinDias,
@@ -332,6 +385,11 @@ export function CatalogoPublicoPage({
     setCartItems((current) =>
       current.filter((item) => String(item.articulo.id) !== String(id)),
     );
+  }
+
+  function removeAllCartItems() {
+    setCartLoadError(null);
+    setCartItems([]);
   }
 
   function openCart() {
@@ -605,6 +663,7 @@ export function CatalogoPublicoPage({
               categoryFilters={categoryFilters}
               toleranciaMinDias={empresa.toleranciaMinDias}
               toleranciaMaxDias={empresa.toleranciaMaxDias}
+              imagenesEnArticulos={empresa.imagenesEnArticulos}
               initialOpenArticleCode={sharedDetailToOpen}
               onSharedDetailOpened={() => setSharedDetailToOpen(null)}
               carritoHabilitado={empresa.tieneCarrito}
@@ -624,8 +683,15 @@ export function CatalogoPublicoPage({
             )}
             isLoading={isCartLoading}
             error={cartLoadError}
+            estadoHorario={estadoHorario}
+            horarios={horarios ?? []}
             onBack={backToCatalog}
-            onContinue={() => setCheckoutStep('cliente')}
+            onContinue={() => {
+              if (estadoHorario !== 'habilitado') return;
+              setCheckoutStep('cliente');
+            }}
+            onRetryHorario={() => setHorarioRetryKey((key) => key + 1)}
+            onRemoveAll={removeAllCartItems}
             onQuantityChange={changeCartQuantity}
             onObservationChange={changeCartObservation}
             onRemove={removeCartItem}
@@ -650,7 +716,9 @@ export function CatalogoPublicoPage({
           onClick={scrollToTopQuickly}
           className={`fixed right-5 z-50 flex size-12 items-center justify-center rounded-pill bg-brand text-brand-foreground shadow-xl transition hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
             checkoutStep === 'carrito'
-              ? 'bottom-24'
+              ? estadoHorario === 'habilitado'
+                ? 'bottom-24'
+                : 'bottom-36'
               : showCartButton
                 ? 'bottom-20'
                 : 'bottom-5'
@@ -685,6 +753,10 @@ function getCartEntries(items: CatalogoItemCarrito[]): CatalogoCarritoEntrada[] 
     observacion2: item.observacion2,
     observacion3: item.observacion3,
   }));
+}
+
+function isArticleUnavailable(articulo: CatalogoRegistroPublico) {
+  return articulo.no_procesado === true || articulo.no_procesado === 1;
 }
 
 function scrollToTopQuickly() {
@@ -787,6 +859,7 @@ function CatalogoFiltroChips({
 function CatalogoPublicoList({
   empresaId,
   empresaSlug,
+  imagenesEnArticulos,
   lista,
   filters,
   categoryFilters,
@@ -801,6 +874,7 @@ function CatalogoPublicoList({
 }: {
   empresaId: number;
   empresaSlug: string;
+  imagenesEnArticulos: boolean;
   lista: CatalogoListaPublica;
   filters: CatalogoFiltroLista;
   categoryFilters: CatalogoFiltroCategoria[];
@@ -994,6 +1068,7 @@ function CatalogoPublicoList({
           <CatalogoArticulos
             records={records}
             empresaSlug={empresaSlug}
+            imagenesEnArticulos={imagenesEnArticulos}
             toleranciaMinDias={toleranciaMinDias}
             toleranciaMaxDias={toleranciaMaxDias}
             initialOpenArticleCode={initialOpenArticleCode}
@@ -1021,6 +1096,7 @@ function CatalogoPublicoList({
 function CatalogoArticulos({
   records,
   empresaSlug,
+  imagenesEnArticulos,
   toleranciaMinDias,
   toleranciaMaxDias,
   initialOpenArticleCode,
@@ -1031,6 +1107,7 @@ function CatalogoArticulos({
 }: {
   records: CatalogoRegistroPublico[];
   empresaSlug: string;
+  imagenesEnArticulos: boolean;
   toleranciaMinDias: number | null;
   toleranciaMaxDias: number | null;
   initialOpenArticleCode: string | null;
@@ -1103,6 +1180,7 @@ function CatalogoArticulos({
             articulo.tiene_existencia === true &&
             cartItem !== undefined &&
             cartItem.cantidad >= MAX_CART_QUANTITY;
+          const unavailable = isArticleUnavailable(articulo);
           const isSelected = cartItem !== undefined;
           const articleName = formatArticleName(articulo.nombre);
           const codigoInterno = articulo.codigo_interno;
@@ -1185,38 +1263,56 @@ function CatalogoArticulos({
             <article
               key={articulo.id}
               className={`relative flex min-h-28 items-stretch overflow-hidden rounded-record sm:min-h-32 ${
-                isSelected
-                  ? 'bg-stock-warning/15 odd:bg-stock-warning/30'
-                  : 'odd:bg-foreground/5'
+                unavailable
+                  ? 'opacity-20 line-through'
+                  : isSelected
+                    ? 'bg-stock-warning/15 odd:bg-stock-warning/30'
+                    : 'odd:bg-foreground/5'
               }`}
             >
-              <button
-                type="button"
-                aria-label={`Ver imagen y detalles de ${articleName}`}
-                onClick={() => setSelectedArticle(articulo)}
-                className={`relative min-h-28 w-20 shrink-0 self-stretch overflow-hidden rounded-l-record cursor-zoom-in focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:min-h-32 sm:w-28 ${
-                  isSelected ? 'bg-stock-warning/15 odd:bg-stock-warning/30' : 'bg-surface'
-                }`}
-              >
-                <RecordImage source={imageUrl} />
-              </button>
+              {imagenesEnArticulos ? (
+                <button
+                  type="button"
+                  aria-label={`Ver imagen y detalles de ${articleName}${articulo.oferta === true ? ', en oferta' : ''}${unavailable ? ', no disponible para pedidos' : ''}`}
+                  onClick={() => setSelectedArticle(articulo)}
+                  className={`relative min-h-28 w-20 shrink-0 self-stretch overflow-hidden rounded-l-record cursor-zoom-in focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:min-h-32 sm:w-28 ${
+                    isSelected ? 'bg-stock-warning/15 odd:bg-stock-warning/30' : 'bg-surface'
+                  }`}
+                >
+                  <RecordImage source={imageUrl} />
+                  {articulo.oferta === true ? (
+                    <span
+                      aria-hidden="true"
+                      title="En oferta"
+                      className="absolute right-1 top-1 z-10 flex size-7 items-center justify-center rounded-button bg-brand text-brand-foreground shadow-md"
+                    >
+                      <BadgePercent className="size-4" />
+                    </span>
+                  ) : null}
+                </button>
+              ) : null}
               {carritoHabilitado ? (
                 <button
                   type="button"
                   aria-pressed={isSelected}
+                  disabled={unavailable}
                   aria-label={
-                    isSelected
-                      ? `Quitar ${articleName} del carrito`
-                      : `Agregar ${articleName} al carrito`
+                    unavailable
+                      ? `${articleName} no disponible para pedidos`
+                      : isSelected
+                        ? `Quitar ${articleName} del carrito`
+                        : `Agregar ${articleName} al carrito`
                   }
                   title={
-                    isSelected
-                      ? 'Quitar del carrito'
-                      : 'Seleccionar para agregar al carrito'
+                    unavailable
+                      ? 'No disponible para pedidos'
+                      : isSelected
+                        ? 'Quitar del carrito'
+                        : 'Seleccionar para agregar al carrito'
                   }
                   onClick={() => onToggleCart(articulo)}
-                  className={`flex min-w-0 flex-1 items-center px-3 py-2 text-left transition focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:px-4 ${
-                    isSelected ? '' : 'hover:bg-surface-raised/70'
+                  className={`flex min-w-0 flex-1 items-center px-3 py-2 text-left transition focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed sm:px-4 ${
+                    isSelected || unavailable ? '' : 'hover:bg-surface-raised/70'
                   }`}
                 >
                   {articleContent}
@@ -1226,6 +1322,16 @@ function CatalogoArticulos({
                   {articleContent}
                 </div>
               )}
+              {!imagenesEnArticulos ? (
+                <button
+                  type="button"
+                  aria-label={`Ver detalles de ${articleName}`}
+                  onClick={() => setSelectedArticle(articulo)}
+                  className="absolute left-1 top-1 z-10 flex size-8 items-center justify-center rounded-button text-foreground/80 transition hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                >
+                  <Info aria-hidden="true" className="size-4 drop-shadow-sm" />
+                </button>
+              ) : null}
               {articleShareUrl ? (
                 <div className="absolute right-1 top-1 z-10">
                   <CatalogoShareButton href={articleShareUrl} title={articleName} />
@@ -1238,6 +1344,7 @@ function CatalogoArticulos({
       {selectedArticle ? (
         <CatalogoRegistroDetalleModal
           articulo={selectedArticle}
+          mostrarImagen={imagenesEnArticulos}
           shareUrl={
             typeof selectedArticle.codigo_interno === 'number' &&
             Number.isSafeInteger(selectedArticle.codigo_interno) &&

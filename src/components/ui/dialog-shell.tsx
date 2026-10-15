@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useEffect, useId, useRef, type ReactNode } from "react";
 
 interface DialogShellProps {
   children: ReactNode;
@@ -11,21 +13,37 @@ export function DialogShell({
   onClose,
   title,
 }: DialogShellProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (!dialog.open) dialog.showModal();
+    return () => {
+      if (dialog.open) dialog.close();
+    };
+  }, []);
+
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-background/80 p-4 backdrop-blur-sm"
-      onMouseDown={(event) => {
+    <dialog
+      ref={dialogRef}
+      aria-modal="true"
+      aria-labelledby={titleId}
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
+      onClick={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
+      className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto overscroll-contain border-0 bg-transparent p-0 text-foreground backdrop:bg-background/80 backdrop:backdrop-blur-sm"
     >
       <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="dialog-title"
-        className="my-auto w-full max-w-lg rounded-card border border-border bg-surface p-6"
+        className="my-4 rounded-card border border-border bg-surface p-6"
       >
         <div className="mb-6 flex items-start justify-between gap-4">
-          <h2 id="dialog-title" className="text-xl font-semibold">
+          <h2 id={titleId} className="text-xl font-semibold">
             {title}
           </h2>
           <button
@@ -48,6 +66,6 @@ export function DialogShell({
         </div>
         {children}
       </section>
-    </div>
+    </dialog>
   );
 }

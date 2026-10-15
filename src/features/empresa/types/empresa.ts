@@ -31,6 +31,8 @@ export interface EmpresaPublica {
   saldosHabilitados: boolean;
   reparacionesHabilitadas: boolean;
   mostrarNavegacionPaginas: boolean;
+  imagenesEnArticulos: boolean;
+  pedidosFueraHorario: boolean;
   incluirCodigoBarra: boolean;
   toleranciaMinDias: number | null;
   toleranciaMaxDias: number | null;

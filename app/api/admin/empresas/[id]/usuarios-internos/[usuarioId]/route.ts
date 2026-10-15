@@ -14,13 +14,9 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     | null;
   if (
     !payload ||
-    typeof payload.nombre !== "string" ||
-    payload.nombre.trim().length === 0 ||
-    payload.nombre.length > 255 ||
-    (payload.contrasena !== undefined &&
-      (typeof payload.contrasena !== "string" ||
-        payload.contrasena.length === 0 ||
-        payload.contrasena.length > 72))
+    typeof payload.contrasena !== "string" ||
+    payload.contrasena.length === 0 ||
+    payload.contrasena.length > 72
   ) {
     return invalidUserData();
   }
@@ -29,10 +25,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     `empresas/${id}/usuarios-internos/${usuarioId}`,
     "PATCH",
     JSON.stringify({
-      nombre: payload.nombre.trim(),
-      ...(typeof payload.contrasena === "string"
-        ? { contrasena: payload.contrasena }
-        : {}),
+      contrasena: payload.contrasena,
     }),
   );
 }

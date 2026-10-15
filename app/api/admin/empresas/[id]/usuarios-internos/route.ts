@@ -20,15 +20,12 @@ export async function POST(request: Request, { params }: RouteContext) {
     | null;
   if (
     !payload ||
-    typeof payload.nombre !== "string" ||
-    payload.nombre.trim().length === 0 ||
-    payload.nombre.length > 255 ||
     typeof payload.contrasena !== "string" ||
     payload.contrasena.length === 0 ||
     payload.contrasena.length > 72
   ) {
     return NextResponse.json(
-      { message: "Ingresá el nombre y una contraseña válida." },
+      { message: "Ingresá una contraseña válida." },
       { status: 400 },
     );
   }
@@ -37,7 +34,6 @@ export async function POST(request: Request, { params }: RouteContext) {
     `empresas/${id}/usuarios-internos`,
     "POST",
     JSON.stringify({
-      nombre: payload.nombre.trim(),
       contrasena: payload.contrasena,
     }),
   );

@@ -2,9 +2,13 @@
 
 import Image from 'next/image';
 import { ArrowLeft, Minus, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { CatalogoShareButton } from '@/features/catalogo/components/catalogo-share-button';
+import { DialogShell } from '@/components/ui/dialog-shell';
 import { Input } from '@/components/ui/input';
+import { HorarioPublicoDialog } from '@/features/horario/components/horario-publico-dialog';
+import type { Horario } from '@/features/horario/types/horario';
 import type {
   CatalogoItemCarrito,
   CatalogoObservacionCarrito,
@@ -21,8 +25,12 @@ export function CatalogoCarritoPage({
   shareUrl,
   isLoading,
   error,
+  estadoHorario,
+  horarios,
   onBack,
   onContinue,
+  onRetryHorario,
+  onRemoveAll,
   onQuantityChange,
   onObservationChange,
   onRemove,
@@ -31,8 +39,12 @@ export function CatalogoCarritoPage({
   shareUrl: string;
   isLoading: boolean;
   error: string | null;
+  estadoHorario: 'habilitado' | 'fuera-horario' | 'consultando' | 'error';
+  horarios: Horario[];
   onBack: () => void;
   onContinue: () => void;
+  onRetryHorario: () => void;
+  onRemoveAll: () => void;
   onQuantityChange: (id: string | number, quantity: number) => void;
   onObservationChange: (
     id: string | number,
@@ -42,76 +54,162 @@ export function CatalogoCarritoPage({
   onRemove: (id: string | number) => void;
 }) {
   const total = calculateOrderTotal(items);
+  const [mostrarHorarios, setMostrarHorarios] = useState(false);
+  const [confirmarVaciado, setConfirmarVaciado] = useState(false);
+  const continuarDeshabilitado =
+    isLoading || items.length === 0 || estadoHorario !== 'habilitado';
 
   return (
     <>
-      <div className="mb-2 flex justify-start">
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex h-8 items-center gap-1.5 rounded-button border border-border px-2.5 text-xs font-medium transition hover:bg-surface-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-        >
-          <ArrowLeft aria-hidden="true" className="size-3.5" />
-          Volver al catálogo
-        </button>
-      </div>
-      <section className="overflow-hidden rounded-card border border-border bg-surface">
-        <div className="flex justify-center border-b border-border px-4 py-4 sm:px-8">
-          <div className="flex items-center gap-2">
-            <h2 className="text-center text-lg font-semibold">Tu pedido</h2>
-            {!isLoading && items.length > 0 ? (
-              <CatalogoShareButton href={shareUrl} title="Tu pedido" />
-            ) : null}
-          </div>
-        </div>
-
-        <div className="space-y-4 p-4 pb-36 sm:p-8 sm:pb-36">
-          {isLoading ? (
-            <p role="status" className="py-5 text-center text-sm text-muted">
-              Cargando artículos del carrito…
-            </p>
-          ) : null}
-          {error ? (
-            <p role="alert" className="text-center text-sm text-danger">
-              {error}
-            </p>
-          ) : null}
-          {!isLoading && items.length > 0 ? (
-            items.map((item) => (
-              <CartItem
-                key={item.articulo.id}
-                item={item}
-                onQuantityChange={onQuantityChange}
-                onObservationChange={onObservationChange}
-                onRemove={onRemove}
-              />
-            ))
-          ) : !isLoading ? (
-            <p className="py-5 text-center text-sm text-muted">
-              El carrito está vacío.
-            </p>
-          ) : null}
-        </div>
-      </section>
-
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 px-4 py-3 shadow-xl backdrop-blur">
-        <div className="mx-auto flex max-w-5xl flex-row items-center justify-between gap-3">
-          <p className="flex min-w-0 flex-col text-base font-semibold">
-            <span>Total</span>
-            <span className="break-words">
-              {total === null ? 'Consultar' : formatCurrency(total)}
-            </span>
-          </p>
+      <div className="pb-52 sm:pb-36">
+        <div className="mb-2 flex justify-start">
           <button
             type="button"
-            onClick={onContinue}
-            disabled={isLoading || items.length === 0}
-            className="inline-flex h-12 shrink-0 items-center justify-center rounded-button bg-brand px-4 text-sm font-semibold text-brand-foreground transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:px-5"
+            onClick={onBack}
+            className="inline-flex h-8 items-center gap-1.5 rounded-button border border-border px-2.5 text-xs font-medium transition hover:bg-surface-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
-            Continuar
+            <ArrowLeft aria-hidden="true" className="size-3.5" />
+            Volver al catálogo
           </button>
         </div>
+        <section className="overflow-hidden rounded-card border border-border bg-surface">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-b border-border px-4 py-4 sm:px-8">
+            {!isLoading && items.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setConfirmarVaciado(true)}
+                className="inline-flex min-h-9 min-w-0 items-center justify-self-start gap-1.5 rounded-button border border-border px-2 text-left text-[11px] font-medium text-danger transition hover:bg-danger/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:px-3 sm:text-xs"
+              >
+                <Trash2 aria-hidden="true" className="size-4 shrink-0" />
+                <span>Eliminar todos los artículos</span>
+              </button>
+            ) : (
+              <span aria-hidden="true" />
+            )}
+            <h2 className="text-center text-lg font-semibold">Tu pedido</h2>
+            {!isLoading && items.length > 0 ? (
+              <div className="justify-self-end">
+                <CatalogoShareButton href={shareUrl} title="Tu pedido" />
+              </div>
+            ) : (
+              <span aria-hidden="true" />
+            )}
+          </div>
+
+          <div className="space-y-4 p-4 sm:p-8">
+            {isLoading ? (
+              <p role="status" className="py-5 text-center text-sm text-muted">
+                Cargando artículos del carrito…
+              </p>
+            ) : null}
+            {error ? (
+              <p role="alert" className="text-center text-sm text-danger">
+                {error}
+              </p>
+            ) : null}
+            {!isLoading && items.length > 0 ? (
+              items.map((item) => (
+                <CartItem
+                  key={item.articulo.id}
+                  item={item}
+                  onQuantityChange={onQuantityChange}
+                  onObservationChange={onObservationChange}
+                  onRemove={onRemove}
+                />
+              ))
+            ) : !isLoading ? (
+              <p className="py-5 text-center text-sm text-muted">
+                El carrito está vacío.
+              </p>
+            ) : null}
+          </div>
+        </section>
       </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 px-4 py-3 shadow-xl backdrop-blur">
+        <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          {estadoHorario === 'fuera-horario' ? (
+            <p role="status" className="text-sm text-muted">
+              No se pueden realizar pedidos fuera de horario{' '}
+              <button
+                type="button"
+                onClick={() => setMostrarHorarios(true)}
+                className="font-semibold text-brand underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              >
+                consultar horarios
+              </button>
+            </p>
+          ) : null}
+          {estadoHorario === 'consultando' ? (
+            <p role="status" className="text-sm text-muted">
+              Consultando el horario de atención…
+            </p>
+          ) : null}
+          {estadoHorario === 'error' ? (
+            <p role="alert" className="text-sm text-danger">
+              No se pudo consultar el horario de atención.{' '}
+              <button
+                type="button"
+                onClick={onRetryHorario}
+                className="font-semibold underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              >
+                Reintentar
+              </button>
+            </p>
+          ) : null}
+          <div className="flex items-center justify-between gap-3 sm:ml-auto sm:justify-end">
+            <p className="flex min-w-0 flex-col text-base font-semibold">
+              <span>Total</span>
+              <span className="break-words">
+                {total === null ? 'Consultar' : formatCurrency(total)}
+              </span>
+            </p>
+            <button
+              type="button"
+              onClick={onContinue}
+              disabled={continuarDeshabilitado}
+              className="inline-flex h-12 shrink-0 items-center justify-center rounded-button bg-brand px-4 text-sm font-semibold text-brand-foreground transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:px-5"
+            >
+              Continuar
+            </button>
+          </div>
+        </div>
+      </div>
+      {mostrarHorarios && estadoHorario === 'fuera-horario' ? (
+        <HorarioPublicoDialog
+          horarios={horarios}
+          onClose={() => setMostrarHorarios(false)}
+        />
+      ) : null}
+      {confirmarVaciado ? (
+        <DialogShell
+          title="Eliminar todos los artículos"
+          onClose={() => setConfirmarVaciado(false)}
+        >
+          <p className="text-sm leading-6 text-muted">
+            ¿Querés eliminar todos los artículos de tu pedido? Esta acción no se puede deshacer.
+          </p>
+          <div className="mt-6 flex flex-col-reverse justify-end gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => setConfirmarVaciado(false)}
+              className="h-11 rounded-button border border-border px-5 text-sm font-semibold transition hover:bg-surface-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setConfirmarVaciado(false);
+                onRemoveAll();
+              }}
+              className="h-11 rounded-button bg-danger px-5 text-sm font-semibold text-background transition hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            >
+              Eliminar todos
+            </button>
+          </div>
+        </DialogShell>
+      ) : null}
     </>
   );
 }

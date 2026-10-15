@@ -1,7 +1,6 @@
 export interface InternalSession {
   id: number;
   idEmpresa: number;
-  nombre: string;
   role: "Interno";
 }
 
@@ -27,6 +26,7 @@ export interface CatalogoInternoFiltros {
 export interface CatalogoInternoRelacion {
   id: number;
   nombre: string;
+  abreviatura?: string | null;
 }
 
 export interface CatalogoInternoCategoria {

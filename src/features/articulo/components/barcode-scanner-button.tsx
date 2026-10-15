@@ -110,7 +110,7 @@ export function BarcodeScannerButton({
         onClick={(event) => {
           if (event.target === event.currentTarget) closeScanner();
         }}
-        className="m-auto max-h-[min(90vh,42rem)] w-[calc(100%-2rem)] max-w-xl overflow-y-auto border-0 bg-transparent p-0 text-foreground backdrop:bg-black/75"
+        className="m-auto max-h-[min(90vh,42rem)] w-[calc(100%-2rem)] max-w-xl overflow-y-auto overscroll-contain border-0 bg-transparent p-0 text-foreground backdrop:bg-black/75"
       >
         <section className="rounded-card border border-border bg-surface p-5 shadow-2xl sm:p-7">
           <div className="mb-4 flex items-start justify-between gap-4">

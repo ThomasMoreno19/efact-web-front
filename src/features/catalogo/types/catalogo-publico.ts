@@ -18,6 +18,7 @@ export interface CatalogoRegistroPublico {
   logo_url?: string | null;
   precio1?: number | null;
   oferta?: boolean;
+  no_procesado?: number | boolean;
   marca?: { nombre: string } | null;
   rubro?: { nombre: string } | null;
   existencia?: number;

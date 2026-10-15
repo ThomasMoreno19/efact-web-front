@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { CompanyLogo } from "@/features/empresa/components/company-logo";
 import { BarcodeScannerButton } from "@/features/articulo/components/barcode-scanner-button";
@@ -27,7 +26,6 @@ export function InternalModulePage({
   const [session, setSession] = useState<InternalSession | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [nombre, setNombre] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
@@ -57,7 +55,7 @@ export function InternalModulePage({
     setLoginError(null);
     setIsLoggingIn(true);
     try {
-      await loginInterno(empresa.id, nombre.trim(), contrasena);
+      await loginInterno(empresa.id, contrasena);
       const authenticatedUser = await getInternalSession(empresa.id);
       setSession(authenticatedUser);
       setContrasena("");
@@ -130,18 +128,9 @@ export function InternalModulePage({
                 Ingreso interno
               </h1>
               <p className="mt-2 text-sm leading-6 text-muted">
-                Ingresá con el usuario interno de {empresa.nombre}.
+                Ingresá la contraseña interna de {empresa.nombre}.
               </p>
             </div>
-            <Input
-              id="internal-user-name"
-              label="Nombre de usuario"
-              value={nombre}
-              onChange={(event) => setNombre(event.currentTarget.value)}
-              autoComplete="username"
-              maxLength={255}
-              required
-            />
             <PasswordInput
               id="internal-user-password"
               label="Contraseña"
@@ -161,7 +150,7 @@ export function InternalModulePage({
             ) : null}
             <button
               type="submit"
-              disabled={isLoggingIn || nombre.trim().length === 0 || contrasena.length === 0}
+              disabled={isLoggingIn || contrasena.length === 0}
               className="inline-flex min-h-12 items-center justify-center rounded-button bg-brand px-5 text-sm font-semibold text-brand-foreground transition hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isLoggingIn ? "Ingresando…" : "Ingresar"}
@@ -174,7 +163,7 @@ export function InternalModulePage({
             empresaId={empresa.id}
             empresaSlug={empresa.slug}
             telefono={empresa.telefono}
-            nombreUsuario={session.nombre}
+            imagenesEnArticulos={empresa.imagenesEnArticulos}
             toleranciaMinDias={empresa.toleranciaMinDias}
             toleranciaMaxDias={empresa.toleranciaMaxDias}
             barcodeScan={barcodeScan}

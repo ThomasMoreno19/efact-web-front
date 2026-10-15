@@ -4,6 +4,7 @@ import Image from 'next/image';
 import {
   ArrowUp,
   BadgePercent,
+  Info,
   MapPin,
   Search,
   Shapes,
@@ -104,7 +105,7 @@ export function InternalCatalogList({
   empresaId,
   empresaSlug,
   telefono,
-  nombreUsuario,
+  imagenesEnArticulos,
   toleranciaMinDias,
   toleranciaMaxDias,
   barcodeScan,
@@ -112,7 +113,7 @@ export function InternalCatalogList({
   empresaId: number;
   empresaSlug: string;
   telefono: string | null;
-  nombreUsuario: string;
+  imagenesEnArticulos: boolean;
   toleranciaMinDias: number | null;
   toleranciaMaxDias: number | null;
   barcodeScan: { value: string; sequence: number } | null;
@@ -122,7 +123,7 @@ export function InternalCatalogList({
   const [keepInitialFocus, setKeepInitialFocus] = useState(true);
   const [categoryFilters, setCategoryFilters] = useState<InternalCategoryFilter[]>([]);
   const [movementItems, setMovementItems] = useState<MovimientoExistenciaItem[]>([]);
-  const [nombre, setNombre] = useState(nombreUsuario);
+  const [nombre, setNombre] = useState("");
   const [observacionMovimiento, setObservacionMovimiento] = useState('');
   const [filters, setFilters] = useState<Record<CatalogoInternoLista, InternalCatalogFilter>>({
     articulos: { ...EMPTY_FILTER },
@@ -548,6 +549,7 @@ export function InternalCatalogList({
               {!isLoading && records.length > 0 && isArticleList(activeList) ? (
                 <InternalCatalogArticles
                   empresaSlug={empresaSlug}
+                  imagenesEnArticulos={imagenesEnArticulos}
                   articulos={articles}
                   selectedItems={movementItems}
                   toleranciaMinDias={toleranciaMinDias}
@@ -594,6 +596,7 @@ export function InternalCatalogList({
           {selectedArticle ? (
             <CatalogoRegistroDetalleModal
               articulo={toPublicArticle(selectedArticle)}
+              mostrarImagen={imagenesEnArticulos}
               shareUrl={buildCatalogoArticuloUrl(
                 `/${empresaSlug}/catalogo`,
                 selectedArticle.codigoInterno,
@@ -634,6 +637,7 @@ export function InternalCatalogList({
 
 function InternalCatalogArticles({
   empresaSlug,
+  imagenesEnArticulos,
   articulos,
   selectedItems,
   toleranciaMinDias,
@@ -643,6 +647,7 @@ function InternalCatalogArticles({
   onSelectArticle,
 }: {
   empresaSlug: string;
+  imagenesEnArticulos: boolean;
   articulos: CatalogoInternoArticulo[];
   selectedItems: MovimientoExistenciaItem[];
   toleranciaMinDias: number | null;
@@ -692,27 +697,36 @@ function InternalCatalogArticles({
                 <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
                   {articulo.ubicacion ? (
                     <span className="inline-flex min-w-0 items-center gap-1.5">
-                      <MapPin aria-hidden="true" className="size-3.5 shrink-0" />
-                      <span className="break-words">{articulo.ubicacion.nombre}</span>
+                      <LocationShelfIcon className="size-3.5 shrink-0" />
+                      <span className="break-words">
+                        {getCatalogRelationLabel(articulo.ubicacion)}
+                      </span>
                     </span>
                   ) : null}
                   {articulo.marca ? (
                     <span className="inline-flex min-w-0 items-center gap-1.5">
                       <Tag aria-hidden="true" className="size-3.5 shrink-0" />
-                      <span className="break-words">{articulo.marca.nombre}</span>
+                      <span className="break-words">
+                        {getCatalogRelationLabel(articulo.marca)}
+                      </span>
                     </span>
                   ) : null}
                   {articulo.rubro ? (
                     <span className="inline-flex min-w-0 items-center gap-1.5">
                       <Shapes aria-hidden="true" className="size-3.5 shrink-0" />
-                      <span className="break-words">{articulo.rubro.nombre}</span>
+                      <span className="break-words">
+                        {getCatalogRelationLabel(articulo.rubro)}
+                      </span>
                     </span>
                   ) : null}
                 </span>
               ) : null}
               {articulo.proveedor ? (
-                <span className="mt-1 block break-words text-xs text-muted">
-                  Proveedor: {articulo.proveedor.nombre}
+                <span className="mt-1 inline-flex min-w-0 items-center gap-1.5 text-xs text-muted">
+                  <Truck aria-hidden="true" className="size-3.5 shrink-0" />
+                  <span className="break-words">
+                    {getCatalogRelationLabel(articulo.proveedor)}
+                  </span>
                 </span>
               ) : null}
               {stockStatus ? (
@@ -763,18 +777,20 @@ function InternalCatalogArticles({
                   : ''
             }`}
           >
-            <button
-              type="button"
-              aria-label={`Ver imagen y detalles de ${articleName}`}
-              onClick={() => onSelectArticle(articulo)}
-              className={`relative min-h-28 w-20 shrink-0 self-stretch overflow-hidden rounded-l-record cursor-zoom-in focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:min-h-32 sm:w-28 ${
-                isSelected ? 'bg-stock-warning/15' : 'bg-surface'
-              }`}
-            >
-              <InternalRecordImage
-                source={getAccessibleImageUrl(articulo.logoUrl?.trim() ?? null)}
-              />
-            </button>
+            {imagenesEnArticulos ? (
+              <button
+                type="button"
+                aria-label={`Ver imagen y detalles de ${articleName}`}
+                onClick={() => onSelectArticle(articulo)}
+                className={`relative min-h-28 w-20 shrink-0 self-stretch overflow-hidden rounded-l-record cursor-zoom-in focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:min-h-32 sm:w-28 ${
+                  isSelected ? 'bg-stock-warning/15' : 'bg-surface'
+                }`}
+              >
+                <InternalRecordImage
+                  source={getAccessibleImageUrl(articulo.logoUrl?.trim() ?? null)}
+                />
+              </button>
+            ) : null}
             {articulo.tieneExistencia ? (
               <button
                 type="button"
@@ -796,6 +812,16 @@ function InternalCatalogArticles({
                 {articleContent}
               </div>
             )}
+            {!imagenesEnArticulos ? (
+              <button
+                type="button"
+                aria-label={`Ver detalles de ${articleName}`}
+                onClick={() => onSelectArticle(articulo)}
+                className="absolute left-1 top-1 z-10 flex size-8 items-center justify-center rounded-button text-foreground/80 transition hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              >
+                <Info aria-hidden="true" className="size-4 drop-shadow-sm" />
+              </button>
+            ) : null}
             <div className="absolute right-1 top-1 z-10">
               <CatalogoShareButton href={shareUrl} title={articleName} />
             </div>
@@ -1047,6 +1073,13 @@ function getCategoryLabel(lista: InternalCategoryList) {
     ubicaciones: 'ubicación',
   };
   return labels[lista];
+}
+
+function getCatalogRelationLabel(relation: {
+  nombre: string;
+  abreviatura?: string | null;
+}) {
+  return relation.abreviatura?.trim() || relation.nombre;
 }
 
 function getCategoryIcon(lista: InternalCategoryList) {

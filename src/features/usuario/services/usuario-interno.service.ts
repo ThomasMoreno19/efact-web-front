@@ -44,7 +44,7 @@ export async function createUsuarioInterno(
 export async function updateUsuarioInterno(
   empresaId: number,
   usuarioId: number,
-  input: { nombre: string; contrasena?: string },
+  input: { contrasena: string },
 ): Promise<UsuarioInterno> {
   const response = await fetchWithAdminSession(
     `/api/admin/empresas/${empresaId}/usuarios-internos/${usuarioId}`,
@@ -79,7 +79,6 @@ function isUsuarioInterno(value: unknown): value is UsuarioInterno {
   const usuario = value as Partial<UsuarioInterno>;
   return (
     Number.isSafeInteger(usuario.id) &&
-    typeof usuario.nombre === "string" &&
     usuario.role === "Interno" &&
     Number.isSafeInteger(usuario.id_empresa)
   );

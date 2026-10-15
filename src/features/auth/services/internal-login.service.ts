@@ -13,15 +13,12 @@ export async function handleInternalLogin(request: Request) {
     !payload ||
     !Number.isSafeInteger(payload.empresaId) ||
     (payload.empresaId as number) < 1 ||
-    typeof payload.nombre !== "string" ||
-    payload.nombre.trim().length === 0 ||
-    payload.nombre.length > 255 ||
     typeof payload.contrasena !== "string" ||
     payload.contrasena.length === 0 ||
     payload.contrasena.length > 72
   ) {
     return NextResponse.json(
-      { message: "Ingresá tu nombre de usuario y contraseña." },
+      { message: "Ingresá una contraseña válida." },
       { status: 400 },
     );
   }
@@ -32,14 +29,13 @@ export async function handleInternalLogin(request: Request) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         idEmpresa: payload.empresaId,
-        nombre: payload.nombre.trim(),
         contrasena: payload.contrasena,
       }),
       cache: "no-store",
     });
     if (backendResponse.status === 401) {
       return NextResponse.json(
-        { message: "El nombre o la contraseña no son correctos para esta empresa." },
+        { message: "La contraseña no es correcta para esta empresa." },
         { status: 401 },
       );
     }

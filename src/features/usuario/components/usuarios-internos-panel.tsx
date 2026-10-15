@@ -4,7 +4,6 @@ import { useEffect, useState, type FormEvent } from "react";
 import { UserRound } from "lucide-react";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { DialogShell } from "@/components/ui/dialog-shell";
-import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { UsuarioInternoCard } from "@/features/usuario/components/usuario-interno-card";
 import {
@@ -21,11 +20,9 @@ export function UsuariosInternosPanel({
   empresaId: number;
 }) {
   const [usuarios, setUsuarios] = useState<UsuarioInterno[]>([]);
-  const [nombre, setNombre] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [editingUsuario, setEditingUsuario] = useState<UsuarioInterno | null>(null);
   const [deletingUsuario, setDeletingUsuario] = useState<UsuarioInterno | null>(null);
-  const [editingNombre, setEditingNombre] = useState("");
   const [editingContrasena, setEditingContrasena] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -61,8 +58,7 @@ export function UsuariosInternosPanel({
     setError(null);
     setNotice(null);
     try {
-      await createUsuarioInterno(empresaId, { nombre: nombre.trim(), contrasena });
-      setNombre("");
+      await createUsuarioInterno(empresaId, { contrasena });
       setContrasena("");
       setNotice("El usuario interno se agregó correctamente.");
       setIsLoading(true);
@@ -80,7 +76,6 @@ export function UsuariosInternosPanel({
 
   function openEditDialog(usuario: UsuarioInterno) {
     setEditingUsuario(usuario);
-    setEditingNombre(usuario.nombre);
     setEditingContrasena("");
     setDialogError(null);
   }
@@ -93,8 +88,8 @@ export function UsuariosInternosPanel({
   async function handleEditSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!editingUsuario || isSaving) return;
-    if (editingNombre.trim().length === 0) {
-      setDialogError("Ingresá un nombre de usuario.");
+    if (editingContrasena.length === 0) {
+      setDialogError("Ingresá una contraseña nueva.");
       return;
     }
 
@@ -107,10 +102,7 @@ export function UsuariosInternosPanel({
         empresaId,
         editingUsuario.id,
         {
-          nombre: editingNombre.trim(),
-          ...(editingContrasena
-            ? { contrasena: editingContrasena }
-            : {}),
+          contrasena: editingContrasena,
         },
       );
       setUsuarios((current) =>
@@ -118,7 +110,7 @@ export function UsuariosInternosPanel({
           usuario.id === updatedUsuario.id ? updatedUsuario : usuario,
         ),
       );
-      setNotice("El usuario interno se actualizó correctamente.");
+      setNotice("La contraseña del usuario interno se actualizó correctamente.");
       setEditingUsuario(null);
       setEditingContrasena("");
     } catch (cause) {
@@ -169,10 +161,6 @@ export function UsuariosInternosPanel({
           />
         }
       >
-        <p className="text-sm leading-6 text-muted">
-          Pueden consultar el catálogo interno y los saldos de esta empresa.
-        </p>
-
         {error ? (
           <p role="alert" className="mt-5 text-sm text-danger">
             {error}
@@ -184,8 +172,7 @@ export function UsuariosInternosPanel({
           </p>
         ) : null}
 
-        <div className="mt-6 border-t border-border pt-5">
-          <h3 className="text-sm font-semibold">Usuarios de esta empresa</h3>
+        <div className="mt-6 pt-5">
           {isLoading ? (
             <p role="status" className="mt-3 text-sm text-muted">
               Cargando usuarios…
@@ -210,25 +197,16 @@ export function UsuariosInternosPanel({
           ) : null}
         </div>
 
-        <div className="mt-7 border-t border-border pt-5">
+        <div className="mt-7 pt-5">
           <h3 className="text-sm font-semibold">Agregar usuario interno</h3>
           <form
             onSubmit={handleSubmit}
-            className="mt-4 grid gap-4 sm:grid-cols-2"
+            className="mt-4 grid gap-4"
           >
             <fieldset
               disabled={isSaving}
               className="contents"
             >
-              <Input
-                id="usuario-interno-nombre"
-                label="Nombre de usuario"
-                value={nombre}
-                maxLength={255}
-                autoComplete="off"
-                required
-                onChange={(event) => setNombre(event.currentTarget.value)}
-              />
               <PasswordInput
                 id="usuario-interno-contrasena"
                 label="Contraseña"
@@ -239,17 +217,13 @@ export function UsuariosInternosPanel({
                 onChange={(event) => setContrasena(event.currentTarget.value)}
               />
             </fieldset>
-            <div className="sm:col-span-2 sm:flex sm:justify-end">
+            <div className="flex justify-start sm:col-span-2">
               <button
                 type="submit"
-                disabled={
-                  isSaving ||
-                  nombre.trim().length === 0 ||
-                  contrasena.length === 0
-                }
-                className="inline-flex min-h-11 w-full items-center justify-center rounded-button bg-brand px-5 text-sm font-semibold text-brand-foreground transition hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                disabled={isSaving || contrasena.length === 0}
+                className="inline-flex min-h-11 items-center justify-center rounded-button bg-brand px-5 text-sm font-semibold text-brand-foreground transition hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSaving ? "Guardando…" : "Agregar usuario interno"}
+                {isSaving ? "Guardando…" : "Agregar"}
               </button>
             </div>
           </form>
@@ -258,7 +232,7 @@ export function UsuariosInternosPanel({
 
       {editingUsuario ? (
         <DialogShell
-          title="Editar usuario interno"
+          title="Cambiar contraseña interna"
           onClose={() => {
             if (isSaving) return;
             setEditingUsuario(null);
@@ -267,32 +241,18 @@ export function UsuariosInternosPanel({
         >
           <form onSubmit={handleEditSubmit}>
             <div className="space-y-4">
-              <Input
-                id="usuario-interno-editar-nombre"
-                label="Nombre de usuario"
-                value={editingNombre}
-                maxLength={255}
-                autoComplete="off"
-                required
-                disabled={isSaving}
-                onChange={(event) =>
-                  setEditingNombre(event.currentTarget.value)
-                }
-              />
               <PasswordInput
                 id="usuario-interno-editar-contrasena"
                 label="Nueva contraseña"
                 value={editingContrasena}
                 maxLength={72}
                 autoComplete="new-password"
+                required
                 disabled={isSaving}
                 onChange={(event) =>
                   setEditingContrasena(event.currentTarget.value)
                 }
               />
-              <p className="text-xs leading-5 text-muted">
-                Dejá la contraseña vacía para conservar la actual.
-              </p>
             </div>
             {dialogError ? (
               <p role="alert" className="mt-4 text-sm text-danger">
@@ -330,8 +290,7 @@ export function UsuariosInternosPanel({
           }}
         >
           <p className="text-sm leading-6 text-muted">
-            ¿Querés eliminar el usuario <strong>{deletingUsuario.nombre}</strong>?
-            Esta acción no se puede deshacer.
+            ¿Querés eliminar este usuario interno? Esta acción no se puede deshacer.
           </p>
           {dialogError ? (
             <p role="alert" className="mt-4 text-sm text-danger">

@@ -5,6 +5,7 @@ export function buildPedidoWhatsappMessage(
   nombre: string,
   observacionPedido: string,
   items: CatalogoItemCarrito[],
+  numeroPedido: number,
   now = new Date(),
 ) {
   const lines = items.map((item) => {
@@ -29,7 +30,7 @@ export function buildPedidoWhatsappMessage(
   });
 
   return [
-    'Pedido',
+    `Pedido #${numeroPedido}`,
     '',
     `Nombre: ${nombre.trim()}`,
     `Observación: ${observacionPedido.trim()}`,

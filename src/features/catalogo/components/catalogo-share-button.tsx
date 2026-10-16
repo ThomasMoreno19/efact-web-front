@@ -1,11 +1,12 @@
 'use client';
 
-import { Copy, Mail, MessageCircle, MoreHorizontal, Share2 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import Image from 'next/image';
+import { Copy, Share2 } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-type ShareOption = 'copy' | 'whatsapp' | 'instagram' | 'facebook' | 'x' | 'email' | 'more';
+type ShareOption = 'copy' | 'whatsapp';
 
 interface MenuPosition {
   left: number;
@@ -68,7 +69,7 @@ export function CatalogoShareButton({
     if (!trigger) return;
     setPortalTarget(trigger.closest('dialog') ?? document.body);
     const bounds = trigger.getBoundingClientRect();
-    const menuHeight = Math.min(window.innerHeight * 0.7, 320);
+    const menuHeight = Math.min(window.innerHeight * 0.7, 144);
     const top =
       bounds.bottom + menuHeight + 8 > window.innerHeight - 12
         ? Math.max(12, bounds.top - menuHeight - 8)
@@ -84,52 +85,17 @@ export function CatalogoShareButton({
     const absoluteUrl = new URL(href, window.location.origin).toString();
     const shareText = `${title}: ${absoluteUrl}`;
 
-    if (option === 'copy' || option === 'instagram') {
+    if (option === 'copy') {
       try {
         await navigator.clipboard.writeText(absoluteUrl);
-        setStatus(
-          option === 'instagram'
-            ? 'Enlace copiado. Pegalo en una historia o chat de Instagram.'
-            : 'Enlace copiado.',
-        );
+        setStatus('Enlace copiado.');
       } catch {
         setStatus('No se pudo copiar el enlace. Intentá nuevamente.');
       }
       return;
     }
 
-    if (option === 'more') {
-      if (navigator.share) {
-        try {
-          await navigator.share({ title, text: title, url: absoluteUrl });
-          setIsOpen(false);
-        } catch (cause) {
-          if (!(cause instanceof DOMException && cause.name === 'AbortError')) {
-            setStatus('No se pudo abrir el menú para compartir.');
-          }
-        }
-      } else {
-        try {
-          await navigator.clipboard.writeText(absoluteUrl);
-          setStatus('Enlace copiado para compartir desde otra aplicación.');
-        } catch {
-          setStatus('No se pudo copiar el enlace. Intentá nuevamente.');
-        }
-      }
-      return;
-    }
-
-    const encodedUrl = encodeURIComponent(absoluteUrl);
-    const encodedText = encodeURIComponent(title);
-    const destinations: Record<Exclude<ShareOption, 'copy' | 'instagram' | 'more'>, string> = {
-      whatsapp: `https://wa.me/?text=${encodeURIComponent(shareText)}`,
-      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
-      x: `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`,
-      email: `mailto:?subject=${encodedText}&body=${encodeURIComponent(shareText)}`,
-    };
-    const destination = destinations[option];
-    if (option === 'email') window.location.href = destination;
-    else window.open(destination, '_blank', 'noopener,noreferrer');
+    window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank', 'noopener,noreferrer');
     setIsOpen(false);
   }
 
@@ -141,15 +107,18 @@ export function CatalogoShareButton({
           role="menu"
           aria-label={`Compartir ${title}`}
           style={{ left: menuPosition.left, top: menuPosition.top }}
-          className="fixed z-[100] max-h-[min(70vh,20rem)] w-[min(14rem,calc(100vw-1.5rem))] overflow-y-auto rounded-input border border-border bg-surface p-2 text-left shadow-2xl"
+          className="fixed z-[100] max-h-[min(70vh,9rem)] w-[min(14rem,calc(100vw-1.5rem))] overflow-y-auto rounded-input border border-border bg-surface p-2 text-left shadow-2xl"
         >
-          <ShareMenuItem icon={Copy} label="Copiar enlace" onClick={() => void selectOption('copy')} />
-          <ShareMenuItem icon={MessageCircle} label="WhatsApp" onClick={() => void selectOption('whatsapp')} />
-          <ShareMenuItem label="Instagram" onClick={() => void selectOption('instagram')} />
-          <ShareMenuItem label="Facebook" onClick={() => void selectOption('facebook')} />
-          <ShareMenuItem label="X" onClick={() => void selectOption('x')} />
-          <ShareMenuItem icon={Mail} label="Correo electrónico" onClick={() => void selectOption('email')} />
-          <ShareMenuItem icon={MoreHorizontal} label="Más aplicaciones" onClick={() => void selectOption('more')} />
+          <ShareMenuItem
+            icon={<Copy aria-hidden="true" className="size-4 shrink-0 text-muted" />}
+            label="Copiar enlace"
+            onClick={() => void selectOption('copy')}
+          />
+          <ShareMenuItem
+            icon={<Image src="/whatsapp.svg" alt="" aria-hidden="true" width={16} height={16} className="size-4 shrink-0" />}
+            label="WhatsApp"
+            onClick={() => void selectOption('whatsapp')}
+          />
           {status ? (
             <p role="status" className="px-3 py-2 text-xs leading-5 text-muted">
               {status}
@@ -181,11 +150,11 @@ export function CatalogoShareButton({
 }
 
 function ShareMenuItem({
-  icon: Icon,
+  icon,
   label,
   onClick,
 }: {
-  icon?: LucideIcon;
+  icon?: ReactNode;
   label: string;
   onClick: () => void;
 }) {
@@ -196,7 +165,7 @@ function ShareMenuItem({
       onClick={onClick}
       className="flex min-h-10 w-full items-center gap-3 rounded-button px-3 py-2 text-left text-sm transition hover:bg-surface-raised focus-visible:bg-surface-raised focus-visible:outline-2 focus-visible:outline-brand"
     >
-      {Icon ? <Icon aria-hidden="true" className="size-4 shrink-0 text-muted" /> : null}
+      {icon}
       <span>{label}</span>
     </button>
   );

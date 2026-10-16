@@ -1,10 +1,11 @@
 'use client';
 
 import Image from 'next/image';
-import { ArrowLeft, Minus, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Info, Minus, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { CatalogoShareButton } from '@/features/catalogo/components/catalogo-share-button';
+import { CatalogoRegistroDetalleModal } from '@/features/catalogo/components/catalogo-registro-detalle-modal';
 import { DialogShell } from '@/components/ui/dialog-shell';
 import { Input } from '@/components/ui/input';
 import { HorarioPublicoDialog } from '@/features/horario/components/horario-publico-dialog';
@@ -18,10 +19,16 @@ import {
   formatArticleName,
   formatCurrency,
 } from '@/features/catalogo/utils/catalogo-publico';
+import { buildCatalogoArticuloUrl } from '@/features/catalogo/utils/catalogo-share-url';
+import { getAccessibleImageUrl } from '@/services/image-url';
 import WhatsappLogo from '../../../../public/whatsapp.svg';
 
 export function CatalogoCarritoPage({
   items,
+  empresaSlug,
+  imagenesEnArticulos,
+  toleranciaMinDias,
+  toleranciaMaxDias,
   shareUrl,
   isLoading,
   error,
@@ -36,6 +43,10 @@ export function CatalogoCarritoPage({
   onRemove,
 }: {
   items: CatalogoItemCarrito[];
+  empresaSlug: string;
+  imagenesEnArticulos: boolean;
+  toleranciaMinDias: number | null;
+  toleranciaMaxDias: number | null;
   shareUrl: string;
   isLoading: boolean;
   error: string | null;
@@ -77,11 +88,11 @@ export function CatalogoCarritoPage({
             {!isLoading && items.length > 0 ? (
               <button
                 type="button"
+                aria-label="Vaciar pedido"
                 onClick={() => setConfirmarVaciado(true)}
-                className="inline-flex min-h-9 min-w-0 items-center justify-self-start gap-1.5 rounded-button border border-border px-2 text-left text-[11px] font-medium text-danger transition hover:bg-danger/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:px-3 sm:text-xs"
+                className="inline-flex size-9 items-center justify-center justify-self-start rounded-button border border-border text-danger transition hover:bg-danger/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               >
                 <Trash2 aria-hidden="true" className="size-4 shrink-0" />
-                <span>Eliminar todos los artículos</span>
               </button>
             ) : (
               <span aria-hidden="true" />
@@ -112,6 +123,10 @@ export function CatalogoCarritoPage({
                 <CartItem
                   key={item.articulo.id}
                   item={item}
+                  empresaSlug={empresaSlug}
+                  imagenesEnArticulos={imagenesEnArticulos}
+                  toleranciaMinDias={toleranciaMinDias}
+                  toleranciaMaxDias={toleranciaMaxDias}
                   onQuantityChange={onQuantityChange}
                   onObservationChange={onObservationChange}
                   onRemove={onRemove}
@@ -183,11 +198,11 @@ export function CatalogoCarritoPage({
       ) : null}
       {confirmarVaciado ? (
         <DialogShell
-          title="Eliminar todos los artículos"
+          title="Vaciar pedido"
           onClose={() => setConfirmarVaciado(false)}
         >
           <p className="text-sm leading-6 text-muted">
-            ¿Querés eliminar todos los artículos de tu pedido? Esta acción no se puede deshacer.
+            ¿Querés vaciar tu pedido? Esta acción no se puede deshacer.
           </p>
           <div className="mt-6 flex flex-col-reverse justify-end gap-3 sm:flex-row">
             <button
@@ -216,11 +231,19 @@ export function CatalogoCarritoPage({
 
 function CartItem({
   item,
+  empresaSlug,
+  imagenesEnArticulos,
+  toleranciaMinDias,
+  toleranciaMaxDias,
   onQuantityChange,
   onObservationChange,
   onRemove,
 }: {
   item: CatalogoItemCarrito;
+  empresaSlug: string;
+  imagenesEnArticulos: boolean;
+  toleranciaMinDias: number | null;
+  toleranciaMaxDias: number | null;
   onQuantityChange: (id: string | number, quantity: number) => void;
   onObservationChange: (
     id: string | number,
@@ -229,23 +252,68 @@ function CartItem({
   ) => void;
   onRemove: (id: string | number) => void;
 }) {
+  const [showDetails, setShowDetails] = useState(false);
+  const [failedImageSource, setFailedImageSource] = useState<string | null>(null);
   const { articulo } = item;
   const itemPrice = getUnitPrice(item);
   const subtotal = itemPrice === null ? null : itemPrice * item.cantidad;
   const name = formatArticleName(articulo.nombre);
+  const imageUrl = getAccessibleImageUrl(articulo.logo_url?.trim() || null);
+  const mostrarImagen =
+    imagenesEnArticulos && Boolean(imageUrl) && failedImageSource !== imageUrl;
+  const shareUrl =
+    typeof articulo.codigo_interno === 'number' &&
+    Number.isSafeInteger(articulo.codigo_interno) &&
+    articulo.codigo_interno >= 0 &&
+    articulo.codigo_interno <= 2_147_483_647
+      ? buildCatalogoArticuloUrl(
+          `/${empresaSlug}/catalogo`,
+          articulo.codigo_interno,
+          true,
+        )
+      : null;
 
   return (
     <article className="rounded-record border border-border bg-surface-raised p-4 sm:p-5">
-      <div className="flex items-start justify-between gap-4">
-        <h3 className="break-words text-base font-semibold">{name}</h3>
-        <button
-          type="button"
-          aria-label={`Quitar ${name} del carrito`}
-          onClick={() => onRemove(articulo.id)}
-          className="flex size-9 shrink-0 items-center justify-center rounded-button text-danger transition hover:bg-danger/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-        >
-          <Trash2 aria-hidden="true" className="size-4" />
-        </button>
+      <div className="flex items-start gap-4">
+        {imagenesEnArticulos && imageUrl && failedImageSource !== imageUrl ? (
+          <button
+            type="button"
+            aria-label={`Ver imagen y detalles de ${name}`}
+            onClick={() => setShowDetails(true)}
+            className="relative size-24 shrink-0 overflow-hidden rounded-record bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:size-28"
+          >
+            <CartArticleImage
+              source={imageUrl}
+              onError={() => setFailedImageSource(imageUrl)}
+            />
+          </button>
+        ) : null}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-4">
+            <h3 className="break-words text-base font-semibold">{name}</h3>
+            <div className="flex shrink-0 items-center gap-1">
+              {!mostrarImagen ? (
+                <button
+                  type="button"
+                  aria-label={`Ver detalles de ${name}`}
+                  onClick={() => setShowDetails(true)}
+                  className="flex size-9 items-center justify-center rounded-button text-muted transition hover:bg-background hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                >
+                  <Info aria-hidden="true" className="size-4" />
+                </button>
+              ) : null}
+              <button
+                type="button"
+                aria-label={`Quitar ${name} del carrito`}
+                onClick={() => onRemove(articulo.id)}
+                className="flex size-9 items-center justify-center rounded-button text-danger transition hover:bg-danger/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              >
+                <Trash2 aria-hidden="true" className="size-4" />
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
@@ -330,7 +398,31 @@ function CartItem({
           />
         ) : null}
       </div>
+      {showDetails ? (
+        <CatalogoRegistroDetalleModal
+          articulo={articulo}
+          shareUrl={shareUrl}
+          mostrarImagen={mostrarImagen}
+          toleranciaMinDias={toleranciaMinDias}
+          toleranciaMaxDias={toleranciaMaxDias}
+          onClose={() => setShowDetails(false)}
+        />
+      ) : null}
     </article>
+  );
+}
+
+function CartArticleImage({ source, onError }: { source: string; onError: () => void }) {
+  return (
+    <Image
+      src={source}
+      alt=""
+      aria-hidden="true"
+      fill
+      unoptimized
+      className="object-contain"
+      onError={onError}
+    />
   );
 }
 
@@ -371,6 +463,8 @@ export function PedidoClientePage({
   onBack,
   onSubmit,
   whatsappDisponible,
+  isSending,
+  submitError,
 }: {
   nombre: string;
   observacion: string;
@@ -379,6 +473,8 @@ export function PedidoClientePage({
   onBack: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   whatsappDisponible: boolean;
+  isSending: boolean;
+  submitError: string | null;
 }) {
   return (
     <>
@@ -428,10 +524,15 @@ export function PedidoClientePage({
               La empresa no tiene un número de WhatsApp válido para enviar el pedido.
             </p>
           ) : null}
+          {submitError ? (
+            <p role="alert" className="text-sm text-danger">
+              {submitError}
+            </p>
+          ) : null}
           <div className="flex justify-center">
             <button
               type="submit"
-              disabled={!whatsappDisponible || nombre.trim().length === 0}
+              disabled={!whatsappDisponible || nombre.trim().length === 0 || isSending}
               className="inline-flex h-12 items-center justify-center gap-2 rounded-button bg-brand px-6 text-sm font-semibold text-brand-foreground transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
               <Image
@@ -441,7 +542,7 @@ export function PedidoClientePage({
                 unoptimized
                 className="size-5"
               />
-              Enviar
+              {isSending ? 'Registrando pedido…' : 'Enviar'}
             </button>
           </div>
         </form>

@@ -34,6 +34,7 @@ import { Input } from '@/components/ui/input';
 import { CatalogoRegistroDetalleModal } from '@/features/catalogo/components/catalogo-registro-detalle-modal';
 import { CatalogoShareButton } from '@/features/catalogo/components/catalogo-share-button';
 import { getCatalogoPublicoPage } from '@/features/catalogo/services/catalogo-publico.service';
+import { createPedidoPublico } from '@/features/catalogo/services/pedido-publico.service';
 import type {
   CatalogoItemCarrito,
   CatalogoObservacionCarrito,
@@ -126,6 +127,8 @@ export function CatalogoPublicoPage({
   const [cartLoadError, setCartLoadError] = useState<string | null>(null);
   const [nombreCliente, setNombreCliente] = useState('');
   const [observacionPedido, setObservacionPedido] = useState('');
+  const [isSendingOrder, setIsSendingOrder] = useState(false);
+  const [orderSendError, setOrderSendError] = useState<string | null>(null);
   const [categoryFilters, setCategoryFilters] = useState<CatalogoFiltroCategoria[]>([]);
   const [sharedDetailToOpen, setSharedDetailToOpen] = useState<string | null>(
     initialOpenArticleDetails ? initialArticleCode ?? null : null,
@@ -410,15 +413,51 @@ export function CatalogoPublicoPage({
     );
   }
 
-  function sendOrder(event: FormEvent<HTMLFormElement>) {
+  async function sendOrder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!whatsappNumber || !nombreCliente.trim() || cartItems.length === 0) return;
-    const message = buildPedidoWhatsappMessage(
-      nombreCliente,
-      observacionPedido,
-      cartItems,
-    );
-    window.open(buildWhatsappUrl(whatsappNumber, message), '_blank', 'noopener,noreferrer');
+    if (
+      !whatsappNumber ||
+      !nombreCliente.trim() ||
+      cartItems.length === 0 ||
+      isSendingOrder
+    ) {
+      return;
+    }
+
+    const whatsappWindow = window.open('about:blank', '_blank');
+    if (whatsappWindow) whatsappWindow.opener = null;
+    setIsSendingOrder(true);
+    setOrderSendError(null);
+    try {
+      const pedido = await createPedidoPublico(
+        empresa.id,
+        nombreCliente,
+        observacionPedido,
+        cartItems,
+      );
+      const message = buildPedidoWhatsappMessage(
+        nombreCliente,
+        observacionPedido,
+        cartItems,
+        pedido.numeroPedido,
+        new Date(pedido.createdAt),
+      );
+      const whatsappUrl = buildWhatsappUrl(whatsappNumber, message);
+      if (whatsappWindow && !whatsappWindow.closed) {
+        whatsappWindow.location.href = whatsappUrl;
+      } else {
+        window.location.assign(whatsappUrl);
+      }
+    } catch (cause) {
+      whatsappWindow?.close();
+      setOrderSendError(
+        cause instanceof Error
+          ? cause.message
+          : 'No se pudo registrar el pedido. Intentá nuevamente.',
+      );
+    } finally {
+      setIsSendingOrder(false);
+    }
   }
 
   function updateFilter(field: keyof CatalogoFiltroLista, value: string) {
@@ -677,6 +716,10 @@ export function CatalogoPublicoPage({
         ) : checkoutStep === 'carrito' ? (
           <CatalogoCarritoPage
             items={cartItems}
+            empresaSlug={empresa.slug}
+            imagenesEnArticulos={empresa.imagenesEnArticulos}
+            toleranciaMinDias={empresa.toleranciaMinDias}
+            toleranciaMaxDias={empresa.toleranciaMaxDias}
             shareUrl={buildCatalogoCarritoUrl(
               `/${empresa.slug}/catalogo/carrito`,
               getCartEntries(cartItems),
@@ -705,6 +748,8 @@ export function CatalogoPublicoPage({
             onBack={() => setCheckoutStep('carrito')}
             onSubmit={sendOrder}
             whatsappDisponible={Boolean(whatsappNumber)}
+            isSending={isSendingOrder}
+            submitError={orderSendError}
           />
         )}
       </div>

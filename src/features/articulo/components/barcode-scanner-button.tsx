@@ -3,6 +3,7 @@
 import { Barcode, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { IScannerControls } from '@zxing/browser';
+import type { BarcodeFormat, DecodeHintType } from '@zxing/library';
 
 export function BarcodeScannerButton({
   onDetected,
@@ -39,11 +40,32 @@ export function BarcodeScannerButton({
 
     async function startScanner() {
       try {
-        const { BrowserMultiFormatOneDReader } = await import('@zxing/browser');
+        const [{ BarcodeFormat, BrowserMultiFormatOneDReader }, { DecodeHintType }] =
+          await Promise.all([import('@zxing/browser'), import('@zxing/library')]);
         if (!isActive) return;
-        const reader = new BrowserMultiFormatOneDReader();
-        const controls = await reader.decodeFromVideoDevice(
-          undefined,
+        const hints = new Map<DecodeHintType, BarcodeFormat[] | boolean>();
+        hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+          BarcodeFormat.EAN_13,
+          BarcodeFormat.EAN_8,
+          BarcodeFormat.UPC_A,
+          BarcodeFormat.UPC_E,
+          BarcodeFormat.CODE_128,
+          BarcodeFormat.CODE_39,
+          BarcodeFormat.CODE_93,
+          BarcodeFormat.ITF,
+          BarcodeFormat.CODABAR,
+        ]);
+        hints.set(DecodeHintType.TRY_HARDER, true);
+        const reader = new BrowserMultiFormatOneDReader(hints);
+        const controls = await reader.decodeFromConstraints(
+          {
+            audio: false,
+            video: {
+              facingMode: { ideal: 'environment' },
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
+          },
           videoRef.current ?? undefined,
           (result, _scanError, activeControls) => {
             if (!isActive || !result) return;

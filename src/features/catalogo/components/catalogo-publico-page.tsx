@@ -537,11 +537,11 @@ export function CatalogoPublicoPage({
             />
           ) : null}
           <div
-            className={`relative overflow-hidden rounded-record bg-surface transition-all duration-300 ${
-              compactHeader ? 'size-12' : 'size-28 sm:size-36'
+            className={`relative flex w-fit max-w-full items-center justify-center overflow-hidden rounded-record bg-surface transition-all duration-300 ${
+              compactHeader ? 'h-12' : 'h-28 sm:h-36'
             }`}
           >
-            <CompanyLogo empresa={empresa} />
+            <CompanyLogo empresa={empresa} fitToHeight />
           </div>
           <h1
             className={`font-semibold tracking-tight transition-all duration-300 ${

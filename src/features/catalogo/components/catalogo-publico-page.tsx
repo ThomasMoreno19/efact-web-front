@@ -11,7 +11,6 @@ import {
   Shapes,
   ShoppingCart,
   Tag,
-  Truck,
   X,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -1215,9 +1214,6 @@ function CatalogoArticulos({
             articulo.rubro?.abreviatura?.trim() || articulo.rubro?.nombre.trim();
           const marcaLabel =
             articulo.marca?.abreviatura?.trim() || articulo.marca?.nombre.trim();
-          const proveedorLabel =
-            articulo.proveedor?.abreviatura?.trim() ||
-            articulo.proveedor?.nombre.trim();
           const displayPrice = updateStatus.isBeyondMaximum
             ? 'Consultar'
             : articulo.precio1 !== undefined && articulo.precio1 !== null
@@ -1254,7 +1250,7 @@ function CatalogoArticulos({
                 >
                   {articleName}
                 </span>
-                {rubroLabel || marcaLabel || proveedorLabel || stockStatus ? (
+                {rubroLabel || marcaLabel || stockStatus ? (
                   <span className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
                     {rubroLabel ? (
                       <span className="inline-flex min-w-0 items-center gap-1.5">
@@ -1266,12 +1262,6 @@ function CatalogoArticulos({
                       <span className="inline-flex min-w-0 items-center gap-1.5">
                         <Tag aria-hidden="true" className="size-3.5 shrink-0" />
                         <span className="break-words">{marcaLabel}</span>
-                      </span>
-                    ) : null}
-                    {proveedorLabel ? (
-                      <span className="inline-flex min-w-0 items-center gap-1.5">
-                        <Truck aria-hidden="true" className="size-3.5 shrink-0" />
-                        <span className="break-words">{proveedorLabel}</span>
                       </span>
                     ) : null}
                     {stockStatus ? <StockIndicator status={stockStatus} /> : null}

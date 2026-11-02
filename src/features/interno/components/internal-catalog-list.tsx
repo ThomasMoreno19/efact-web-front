@@ -6,6 +6,7 @@ import {
   BadgePercent,
   Info,
   MapPin,
+  Ruler,
   Search,
   Shapes,
   ShoppingCart,
@@ -597,6 +598,7 @@ export function InternalCatalogList({
             <CatalogoRegistroDetalleModal
               articulo={toPublicArticle(selectedArticle)}
               mostrarImagen={imagenesEnArticulos}
+              mostrarCodigoInterno
               shareUrl={buildCatalogoArticuloUrl(
                 `/${empresaSlug}/catalogo`,
                 selectedArticle.codigoInterno,
@@ -660,7 +662,7 @@ function InternalCatalogArticles({
   onSelectArticle: (articulo: CatalogoInternoArticulo) => void;
 }) {
   return (
-    <div className="mt-4 divide-y divide-border">
+    <div className="mt-4 grid auto-rows-[1fr] divide-y divide-border">
       {articulos.map((articulo, index) => {
         const stockStatus = articulo.tieneExistencia
           ? getArticuloStockStatus(
@@ -675,6 +677,7 @@ function InternalCatalogArticles({
           toleranciaMaxDias,
         );
         const articleName = formatArticleName(articulo.nombre);
+        const unidadMedida = articulo.unidadMedida?.trim();
         const isSelected = selectedItems.some(
           (item) => item.articulo.id === articulo.id,
         );
@@ -693,59 +696,75 @@ function InternalCatalogArticles({
               >
                 {articleName}
               </span>
-              {articulo.ubicacion || articulo.marca || articulo.rubro ? (
-                <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+              {articulo.ubicacion ||
+              articulo.marca ||
+              articulo.rubro ||
+              articulo.proveedor ||
+              stockStatus ? (
+                <span className="mt-1 block text-xs text-muted">
+                  {articulo.rubro || articulo.marca || articulo.proveedor || stockStatus ? (
+                    <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                      {articulo.rubro ? (
+                        <span className="inline-flex min-w-0 items-center gap-1.5">
+                          <Shapes aria-hidden="true" className="size-3.5 shrink-0" />
+                          <span className="break-words">
+                            {getCatalogRelationLabel(articulo.rubro)}
+                          </span>
+                        </span>
+                      ) : null}
+                      {articulo.marca ? (
+                        <span className="inline-flex min-w-0 items-center gap-1.5">
+                          <Tag aria-hidden="true" className="size-3.5 shrink-0" />
+                          <span className="break-words">
+                            {getCatalogRelationLabel(articulo.marca)}
+                          </span>
+                        </span>
+                      ) : null}
+                      {articulo.proveedor ? (
+                        <span className="inline-flex min-w-0 items-center gap-1.5">
+                          <Truck aria-hidden="true" className="size-3.5 shrink-0" />
+                          <span className="break-words">
+                            {getCatalogRelationLabel(articulo.proveedor)}
+                          </span>
+                        </span>
+                      ) : null}
+                      {stockStatus ? <StockIndicator status={stockStatus} /> : null}
+                    </span>
+                  ) : null}
                   {articulo.ubicacion ? (
-                    <span className="inline-flex min-w-0 items-center gap-1.5">
+                    <span className="mt-1 inline-flex max-w-full min-w-0 items-center gap-1.5">
                       <LocationShelfIcon className="size-3.5 shrink-0" />
                       <span className="break-words">
                         {getCatalogRelationLabel(articulo.ubicacion)}
                       </span>
                     </span>
                   ) : null}
-                  {articulo.marca ? (
-                    <span className="inline-flex min-w-0 items-center gap-1.5">
-                      <Tag aria-hidden="true" className="size-3.5 shrink-0" />
-                      <span className="break-words">
-                        {getCatalogRelationLabel(articulo.marca)}
-                      </span>
-                    </span>
-                  ) : null}
-                  {articulo.rubro ? (
-                    <span className="inline-flex min-w-0 items-center gap-1.5">
-                      <Shapes aria-hidden="true" className="size-3.5 shrink-0" />
-                      <span className="break-words">
-                        {getCatalogRelationLabel(articulo.rubro)}
-                      </span>
-                    </span>
-                  ) : null}
-                </span>
-              ) : null}
-              {articulo.proveedor ? (
-                <span className="mt-1 inline-flex min-w-0 items-center gap-1.5 text-xs text-muted">
-                  <Truck aria-hidden="true" className="size-3.5 shrink-0" />
-                  <span className="break-words">
-                    {getCatalogRelationLabel(articulo.proveedor)}
-                  </span>
-                </span>
-              ) : null}
-              {stockStatus ? (
-                <span className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-                  <StockIndicator status={stockStatus} />
-                  <span>Existencia: {articulo.existencia.toLocaleString('es-AR')}</span>
                 </span>
               ) : null}
             </span>
-            <span className="ml-2 flex shrink-0 flex-col items-end justify-center gap-1 py-2">
+            <span className="ml-2 grid shrink-0 grid-rows-[1fr_auto_auto] justify-items-end self-stretch gap-1 py-2">
               {displayPrice ? (
                 <span
-                  className={`whitespace-nowrap text-xs font-semibold sm:text-sm ${
+                  className={`self-center translate-y-2 whitespace-nowrap text-xs font-semibold sm:text-sm ${
                     updateStatus.isBeyondMaximum ? 'text-brand' : 'text-foreground'
                   }`}
                 >
                   {displayPrice}
                 </span>
-              ) : null}
+              ) : (
+                <span aria-hidden="true" className="h-4" />
+              )}
+              <span className="flex flex-col items-end whitespace-nowrap text-[10px] leading-4 text-muted sm:text-xs">
+                {unidadMedida ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Ruler aria-hidden="true" className="size-3.5 shrink-0" />
+                    {unidadMedida}
+                  </span>
+                ) : (
+                  <span aria-hidden="true" className="h-4" />
+                )}
+                <span>Cód. {articulo.codigoInterno}</span>
+              </span>
               {updateStatus.label ? (
                 <span
                   className={`whitespace-nowrap text-[10px] sm:text-xs ${
@@ -754,10 +773,9 @@ function InternalCatalogArticles({
                 >
                   {updateStatus.label}
                 </span>
-              ) : null}
-              <span className="whitespace-nowrap text-[10px] text-muted sm:text-xs">
-                Cód. {articulo.codigoInterno}
-              </span>
+              ) : (
+                <span aria-hidden="true" className="h-4" />
+              )}
             </span>
           </>
         );
@@ -1042,6 +1060,7 @@ function toPublicArticle(articulo: CatalogoInternoArticulo): CatalogoRegistroPub
     logo_url: articulo.logoUrl,
     precio1: articulo.precio1,
     oferta: articulo.oferta,
+    unidad_medida: articulo.unidadMedida,
     marca: articulo.marca ? { nombre: articulo.marca.nombre } : null,
     rubro: articulo.rubro ? { nombre: articulo.rubro.nombre } : null,
     existencia: articulo.existencia,

@@ -161,6 +161,7 @@ function isCatalogoInternoArticulo(
     isNullableNumber(articulo.minimaExistencia) &&
     isNullableNumber(articulo.maximaExistencia) &&
     typeof articulo.oferta === "boolean" &&
+    (articulo.unidadMedida === undefined || isNullableString(articulo.unidadMedida)) &&
     isNullableString(articulo.actualizadoEn) &&
     isNullableCatalogoRelacion(articulo.marca) &&
     isNullableCatalogoRelacion(articulo.rubro) &&

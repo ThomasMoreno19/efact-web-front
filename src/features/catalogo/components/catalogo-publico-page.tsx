@@ -7,9 +7,11 @@ import {
   BadgePercent,
   Info,
   Search,
+  Ruler,
   Shapes,
   ShoppingCart,
   Tag,
+  Truck,
   X,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -1192,7 +1194,7 @@ function CatalogoArticulos({
 
   return (
     <>
-      <div className="mt-4 divide-y divide-border">
+      <div className="mt-4 grid auto-rows-[1fr] divide-y divide-border">
         {records.map((articulo) => {
           const stockStatus =
             articulo.tiene_existencia === true
@@ -1208,11 +1210,14 @@ function CatalogoArticulos({
             toleranciaMinDias,
             toleranciaMaxDias,
           );
-          const existence =
-            articulo.tiene_existencia === true &&
-            Number.isFinite(articulo.existencia)
-              ? articulo.existencia?.toLocaleString('es-AR')
-              : undefined;
+          const unidadMedida = articulo.unidad_medida?.trim();
+          const rubroLabel =
+            articulo.rubro?.abreviatura?.trim() || articulo.rubro?.nombre.trim();
+          const marcaLabel =
+            articulo.marca?.abreviatura?.trim() || articulo.marca?.nombre.trim();
+          const proveedorLabel =
+            articulo.proveedor?.abreviatura?.trim() ||
+            articulo.proveedor?.nombre.trim();
           const displayPrice = updateStatus.isBeyondMaximum
             ? 'Consultar'
             : articulo.precio1 !== undefined && articulo.precio1 !== null
@@ -1249,28 +1254,27 @@ function CatalogoArticulos({
                 >
                   {articleName}
                 </span>
-                {articulo.marca?.nombre || articulo.rubro?.nombre ? (
-                  <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-                    {articulo.marca?.nombre ? (
-                      <span className="inline-flex min-w-0 items-center gap-1.5">
-                        <Tag aria-hidden="true" className="size-3.5 shrink-0" />
-                        <span className="break-words">{articulo.marca.nombre}</span>
-                      </span>
-                    ) : null}
-                    {articulo.rubro?.nombre ? (
+                {rubroLabel || marcaLabel || proveedorLabel || stockStatus ? (
+                  <span className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+                    {rubroLabel ? (
                       <span className="inline-flex min-w-0 items-center gap-1.5">
                         <Shapes aria-hidden="true" className="size-3.5 shrink-0" />
-                        <span className="break-words">{articulo.rubro.nombre}</span>
+                        <span className="break-words">{rubroLabel}</span>
                       </span>
                     ) : null}
-                  </span>
-                ) : null}
-                {stockStatus || existence !== undefined ? (
-                  <span className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-                    {stockStatus ? <StockIndicator status={stockStatus} /> : null}
-                    {existence !== undefined ? (
-                      <span>Exist: {existence}</span>
+                    {marcaLabel ? (
+                      <span className="inline-flex min-w-0 items-center gap-1.5">
+                        <Tag aria-hidden="true" className="size-3.5 shrink-0" />
+                        <span className="break-words">{marcaLabel}</span>
+                      </span>
                     ) : null}
+                    {proveedorLabel ? (
+                      <span className="inline-flex min-w-0 items-center gap-1.5">
+                        <Truck aria-hidden="true" className="size-3.5 shrink-0" />
+                        <span className="break-words">{proveedorLabel}</span>
+                      </span>
+                    ) : null}
+                    {stockStatus ? <StockIndicator status={stockStatus} /> : null}
                   </span>
                 ) : null}
                 {cartItemAtLimit ? (
@@ -1279,10 +1283,10 @@ function CatalogoArticulos({
                   </span>
                 ) : null}
               </span>
-              <span className="ml-2 flex shrink-0 flex-col items-end gap-1 py-2">
+              <span className="ml-2 grid shrink-0 grid-rows-[1fr_auto_auto] justify-items-end self-stretch gap-1 py-2">
                 {displayPrice ? (
                   <span
-                    className={`whitespace-nowrap text-xs font-semibold sm:text-sm ${
+                    className={`self-center translate-y-2 whitespace-nowrap text-xs font-semibold sm:text-sm ${
                       updateStatus.isBeyondMaximum
                         ? 'text-brand'
                         : 'text-foreground'
@@ -1290,16 +1294,35 @@ function CatalogoArticulos({
                   >
                     {displayPrice}
                   </span>
-                ) : null}
+                ) : (
+                  <span aria-hidden="true" className="h-4" />
+                )}
+                <span className="flex flex-col items-end whitespace-nowrap text-[10px] leading-4 text-muted sm:text-xs">
+                  {unidadMedida ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Ruler aria-hidden="true" className="size-3.5 shrink-0" />
+                      {unidadMedida}
+                    </span>
+                  ) : (
+                    <span aria-hidden="true" className="h-4" />
+                  )}
+                  {codigoInterno !== undefined ? (
+                    <span>Cód. {codigoInterno}</span>
+                  ) : (
+                    <span aria-hidden="true" className="h-4" />
+                  )}
+                  </span>
                 {updateStatus.label ? (
                   <span
-                    className={`whitespace-nowrap text-[10px] sm:text-xs ${
+                    className={`whitespace-nowrap text-[10px] leading-4 sm:text-xs ${
                       updateStatus.isBeyondMinimum ? 'text-brand' : 'text-muted'
                     }`}
                   >
                     {updateStatus.label}
                   </span>
-                ) : null}
+                ) : (
+                  <span aria-hidden="true" className="h-4" />
+                )}
               </span>
             </>
           );
@@ -1450,6 +1473,7 @@ function CatalogoTarjetas({
             <span className="absolute inset-0 overflow-hidden rounded-record">
               <RecordImage
                 source={getAccessibleImageUrl(record.logo_url?.trim() ?? null)}
+                fallbackIcon={categoria === 'rubros' ? Shapes : undefined}
               />
               <span className="absolute inset-0 bg-background/45" />
             </span>
@@ -1466,12 +1490,21 @@ function CatalogoTarjetas({
 function RecordImage({
   source,
   imageClassName = 'object-cover',
+  fallbackIcon: FallbackIcon,
 }: {
   source: string | null;
   imageClassName?: string;
+  fallbackIcon?: LucideIcon;
 }) {
   const [hasError, setHasError] = useState(false);
   if (!source || hasError) {
+    if (FallbackIcon) {
+      return (
+        <span className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
+          <FallbackIcon className="size-36 text-brand/40" strokeWidth={1.25} />
+        </span>
+      );
+    }
     return (
       <Image
         src={InvisibleImage}

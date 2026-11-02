@@ -1,5 +1,6 @@
 nodeLinker: hoisted
 allowBuilds:
+  tesseract.js: false
   unrs-resolver: true
 overrides:
   source-map-js: 1.2.2

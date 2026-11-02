@@ -1,6 +1,8 @@
 "use client";
 
 import type { CatalogoRegistroPublico } from "@/features/catalogo/types/catalogo-publico";
+import { getArticuloStockStatus } from "@/features/articulo/utils/articulo-stock-status";
+import type { ArticuloStockStatus } from "@/features/articulo/utils/articulo-stock-status";
 import {
   formatArticleName,
   formatCurrency,
@@ -17,6 +19,7 @@ export function CatalogoRegistroDetalleModal({
   articulo,
   shareUrl,
   mostrarImagen,
+  mostrarCodigoInterno = true,
   toleranciaMinDias,
   toleranciaMaxDias,
   onClose,
@@ -24,6 +27,7 @@ export function CatalogoRegistroDetalleModal({
   articulo: CatalogoRegistroPublico;
   shareUrl: string | null;
   mostrarImagen: boolean;
+  mostrarCodigoInterno?: boolean;
   toleranciaMinDias: number | null;
   toleranciaMaxDias: number | null;
   onClose: () => void;
@@ -42,6 +46,15 @@ export function CatalogoRegistroDetalleModal({
       ? formatCurrency(articulo.precio1)
       : "Sin precio informado";
   const barcode = articulo.codigo_barra?.trim();
+  const brandName = articulo.marca?.nombre.trim();
+  const stockStatus =
+    articulo.tiene_existencia === true
+      ? getArticuloStockStatus(
+          articulo.existencia,
+          articulo.minima_existencia,
+          articulo.maxima_existencia,
+        )
+      : null;
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -72,6 +85,7 @@ export function CatalogoRegistroDetalleModal({
             className="text-xl font-semibold sm:text-2xl"
           >
             {articleName}
+            {stockStatus ? <StockStatusDot status={stockStatus} /> : null}
           </h2>
           <div className="flex shrink-0 items-center gap-1">
             {shareUrl ? (
@@ -100,20 +114,20 @@ export function CatalogoRegistroDetalleModal({
           <div className="min-w-0">
             <dl className="grid gap-4 sm:grid-cols-2">
               <DetailField label="Precio" value={price} />
+              {mostrarCodigoInterno && articulo.codigo_interno !== undefined ? (
+                <DetailField
+                  label="Código interno"
+                  value={String(articulo.codigo_interno)}
+                />
+              ) : null}
               <DetailField
                 label="Rubro"
                 value={articulo.rubro?.nombre || "Sin rubro asociado"}
               />
-              <DetailField
-                label="Marca"
-                value={articulo.marca?.nombre || "Sin marca asociada"}
-              />
-              <DetailField
-                label="Oferta"
-                value={
-                  articulo.oferta === true ? "En oferta" : "No está en oferta"
-                }
-              />
+              {brandName ? <DetailField label="Marca" value={brandName} /> : null}
+              {articulo.oferta === true ? (
+                <DetailField label="Oferta" value="En oferta" />
+              ) : null}
               <DetailField
                 label="Código de barras"
                 value={barcode || "Sin código de barras"}
@@ -158,6 +172,28 @@ function DetailField({ label, value }: { label: string; value: string }) {
       <dt className="text-xs text-muted">{label}</dt>
       <dd className="mt-1 break-words text-sm font-medium">{value}</dd>
     </div>
+  );
+}
+
+function StockStatusDot({ status }: { status: ArticuloStockStatus }) {
+  const labels: Record<ArticuloStockStatus, string> = {
+    red: "Existencia cero o negativa",
+    yellow: "Existencia menor o igual al mínimo",
+    green: "Existencia mayor al mínimo o coincidencia entre mínimo y máximo",
+  };
+  const colors: Record<ArticuloStockStatus, string> = {
+    red: "bg-stock-low",
+    yellow: "bg-stock-warning",
+    green: "bg-stock-high",
+  };
+
+  return (
+    <span
+      role="img"
+      aria-label={labels[status]}
+      title={labels[status]}
+      className={`ml-2 inline-block size-3 shrink-0 align-middle rounded-pill ${colors[status]}`}
+    />
   );
 }
 

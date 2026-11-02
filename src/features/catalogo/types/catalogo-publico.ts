@@ -19,13 +19,15 @@ export interface CatalogoRegistroPublico {
   precio1?: number | null;
   oferta?: boolean;
   no_procesado?: number | boolean;
-  marca?: { nombre: string } | null;
-  rubro?: { nombre: string } | null;
+  marca?: { nombre: string; abreviatura?: string | null } | null;
+  rubro?: { nombre: string; abreviatura?: string | null } | null;
   existencia?: number;
   minima_existencia?: number | null;
   maxima_existencia?: number | null;
   tiene_existencia?: boolean;
+  unidad_medida?: string | null;
   actualizado_en?: string | null;
+  proveedor?: { nombre: string; abreviatura?: string | null } | null;
 }
 
 export interface CatalogoPublicoPage {

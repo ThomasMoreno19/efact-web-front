@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { PasswordInput } from "@/components/ui/password-input";
+import { useDialogBackdropDismiss } from "@/hooks/use-dialog-backdrop-dismiss";
 
 interface ClientPasswordDialogProps {
   open: boolean;
@@ -24,6 +25,9 @@ export function ClientPasswordDialog({
 }: ClientPasswordDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [password, setPassword] = useState("");
+  const backdropDismissProps = useDialogBackdropDismiss(() => {
+    if (!isLoading) onClose();
+  });
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -48,9 +52,7 @@ export function ClientPasswordDialog({
         event.preventDefault();
         if (!isLoading) onClose();
       }}
-      onClick={(event) => {
-        if (event.target === event.currentTarget && !isLoading) onClose();
-      }}
+      {...backdropDismissProps}
       className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md overflow-y-auto overscroll-contain border-0 bg-transparent p-0 text-foreground backdrop:bg-black/75"
     >
       <section className="rounded-card border border-border bg-surface p-6 shadow-2xl sm:p-8">

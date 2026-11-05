@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { ArrowLeft, Info, Minus, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { CatalogoShareButton } from '@/features/catalogo/components/catalogo-share-button';
 import { CatalogoRegistroDetalleModal } from '@/features/catalogo/components/catalogo-registro-detalle-modal';
@@ -69,6 +69,24 @@ export function CatalogoCarritoPage({
   const [confirmarVaciado, setConfirmarVaciado] = useState(false);
   const continuarDeshabilitado =
     isLoading || items.length === 0 || estadoHorario !== 'habilitado';
+  const avisarHorarioAlContinuar =
+    !isLoading && items.length > 0 && estadoHorario === 'fuera-horario';
+  const continuarNativamenteDeshabilitado =
+    continuarDeshabilitado && !avisarHorarioAlContinuar;
+  const [avisoHorarioAnimationKey, setAvisoHorarioAnimationKey] = useState(0);
+
+  useEffect(() => {
+    if (estadoHorario !== 'fuera-horario') setAvisoHorarioAnimationKey(0);
+  }, [estadoHorario]);
+
+  function handleContinue() {
+    if (avisarHorarioAlContinuar) {
+      setAvisoHorarioAnimationKey((key) => key + 1);
+      return;
+    }
+    if (continuarDeshabilitado) return;
+    onContinue();
+  }
 
   return (
     <>
@@ -144,7 +162,15 @@ export function CatalogoCarritoPage({
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 px-4 py-3 shadow-xl backdrop-blur">
         <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           {estadoHorario === 'fuera-horario' ? (
-            <p role="status" className="text-sm text-muted">
+            <p
+              key={avisoHorarioAnimationKey}
+              role="status"
+              className={`text-base text-muted ${
+                avisoHorarioAnimationKey > 0
+                  ? 'animate-warning-text-shadow-fade'
+                  : ''
+              }`}
+            >
               No se pueden realizar pedidos fuera de horario{' '}
               <button
                 type="button"
@@ -181,9 +207,14 @@ export function CatalogoCarritoPage({
             </p>
             <button
               type="button"
-              onClick={onContinue}
-              disabled={continuarDeshabilitado}
-              className="inline-flex h-12 shrink-0 items-center justify-center rounded-button bg-brand px-4 text-sm font-semibold text-brand-foreground transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:px-5"
+              onClick={handleContinue}
+              disabled={continuarNativamenteDeshabilitado}
+              aria-disabled={continuarDeshabilitado}
+              className={`inline-flex h-12 shrink-0 items-center justify-center rounded-button bg-brand px-4 text-sm font-semibold text-brand-foreground transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:px-5 ${
+                continuarDeshabilitado
+                  ? 'cursor-not-allowed opacity-50'
+                  : 'hover:bg-brand-hover'
+              }`}
             >
               Continuar
             </button>
@@ -202,7 +233,7 @@ export function CatalogoCarritoPage({
           onClose={() => setConfirmarVaciado(false)}
         >
           <p className="text-sm leading-6 text-muted">
-            ¿Querés vaciar tu pedido? Esta acción no se puede deshacer.
+            ¿Querés vaciar tu pedido?
           </p>
           <div className="mt-6 flex flex-col-reverse justify-end gap-3 sm:flex-row">
             <button

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useDialogBackdropDismiss } from "@/hooks/use-dialog-backdrop-dismiss";
 
 interface DialogShellProps {
   children: ReactNode;
@@ -15,6 +16,7 @@ export function DialogShell({
 }: DialogShellProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const backdropDismissProps = useDialogBackdropDismiss(onClose);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -34,9 +36,7 @@ export function DialogShell({
         event.preventDefault();
         onClose();
       }}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
+      {...backdropDismissProps}
       className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg overflow-y-auto overscroll-contain border-0 bg-transparent p-0 text-foreground backdrop:bg-background/80 backdrop:backdrop-blur-sm"
     >
       <section

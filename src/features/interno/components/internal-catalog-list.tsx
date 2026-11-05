@@ -597,13 +597,17 @@ export function InternalCatalogList({
           {selectedArticle ? (
             <CatalogoRegistroDetalleModal
               articulo={toPublicArticle(selectedArticle)}
+              shareUrl={null}
+              onCartAction={
+                selectedArticle.tieneExistencia
+                  ? () => toggleMovementItem(selectedArticle)
+                  : undefined
+              }
+              isAddedToCart={movementItems.some(
+                (item) => item.articulo.id === selectedArticle.id,
+              )}
               mostrarImagen={imagenesEnArticulos}
               mostrarCodigoInterno
-              shareUrl={buildCatalogoArticuloUrl(
-                `/${empresaSlug}/catalogo`,
-                selectedArticle.codigoInterno,
-                true,
-              )}
               toleranciaMinDias={toleranciaMinDias}
               toleranciaMaxDias={toleranciaMaxDias}
               onClose={() => setSelectedArticle(null)}

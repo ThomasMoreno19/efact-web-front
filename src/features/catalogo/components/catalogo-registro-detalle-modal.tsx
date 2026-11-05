@@ -1,15 +1,16 @@
 "use client";
 
-import type { CatalogoRegistroPublico } from "@/features/catalogo/types/catalogo-publico";
-import { getArticuloStockStatus } from "@/features/articulo/utils/articulo-stock-status";
 import type { ArticuloStockStatus } from "@/features/articulo/utils/articulo-stock-status";
+import { getArticuloStockStatus } from "@/features/articulo/utils/articulo-stock-status";
+import { CatalogoShareButton } from "@/features/catalogo/components/catalogo-share-button";
+import type { CatalogoRegistroPublico } from "@/features/catalogo/types/catalogo-publico";
 import {
   formatArticleName,
   formatCurrency,
   getUpdateDateStatus,
 } from "@/features/catalogo/utils/catalogo-publico";
 import { getAccessibleImageUrl } from "@/services/image-url";
-import { CatalogoShareButton } from "@/features/catalogo/components/catalogo-share-button";
+import { useDialogBackdropDismiss } from "@/hooks/use-dialog-backdrop-dismiss";
 import { X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
@@ -18,6 +19,8 @@ import InvisibleImage from "../../../../public/transparent.svg";
 export function CatalogoRegistroDetalleModal({
   articulo,
   shareUrl,
+  onCartAction,
+  isAddedToCart = false,
   mostrarImagen,
   mostrarCodigoInterno = true,
   toleranciaMinDias,
@@ -26,6 +29,8 @@ export function CatalogoRegistroDetalleModal({
 }: {
   articulo: CatalogoRegistroPublico;
   shareUrl: string | null;
+  onCartAction?: () => void;
+  isAddedToCart?: boolean;
   mostrarImagen: boolean;
   mostrarCodigoInterno?: boolean;
   toleranciaMinDias: number | null;
@@ -33,6 +38,7 @@ export function CatalogoRegistroDetalleModal({
   onClose: () => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const backdropDismissProps = useDialogBackdropDismiss(onClose);
   const articleName = formatArticleName(articulo.nombre);
   const imageUrl = getAccessibleImageUrl(articulo.logo_url?.trim() ?? null);
   const updateStatus = getUpdateDateStatus(
@@ -73,9 +79,7 @@ export function CatalogoRegistroDetalleModal({
         event.preventDefault();
         onClose();
       }}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
+      {...backdropDismissProps}
       className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-4xl overflow-y-auto overscroll-contain border-0 bg-transparent p-0 text-foreground backdrop:bg-black/75"
     >
       <section className="rounded-card border border-border bg-surface p-5 shadow-2xl sm:p-8">
@@ -103,7 +107,7 @@ export function CatalogoRegistroDetalleModal({
         </div>
 
         <div
-          className={`grid gap-6 ${mostrarImagen ? 'sm:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]' : ''}`}
+          className={`grid gap-6 ${mostrarImagen ? "sm:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]" : ""}`}
         >
           {mostrarImagen ? (
             <div className="relative mx-auto aspect-square w-full max-w-[24rem] overflow-hidden rounded-record bg-surface-raised">
@@ -124,7 +128,9 @@ export function CatalogoRegistroDetalleModal({
                 label="Rubro"
                 value={articulo.rubro?.nombre || "Sin rubro asociado"}
               />
-              {brandName ? <DetailField label="Marca" value={brandName} /> : null}
+              {brandName ? (
+                <DetailField label="Marca" value={brandName} />
+              ) : null}
               {articulo.oferta === true ? (
                 <DetailField label="Oferta" value="En oferta" />
               ) : null}
@@ -133,6 +139,15 @@ export function CatalogoRegistroDetalleModal({
                 value={barcode || "Sin código de barras"}
               />
             </dl>
+            {onCartAction ? (
+              <button
+                type="button"
+                onClick={onCartAction}
+                className="mt-6 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-button bg-brand px-4 py-3 text-sm font-semibold text-brand-foreground transition hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:w-auto"
+              >
+                {isAddedToCart ? "- Sacar del carrito" : "+ Agregar al carrito"}
+              </button>
+            ) : null}
           </div>
         </div>
 

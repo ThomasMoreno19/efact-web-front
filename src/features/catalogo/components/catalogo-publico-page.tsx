@@ -1402,19 +1402,16 @@ function CatalogoArticulos({
       {selectedArticle ? (
         <CatalogoRegistroDetalleModal
           articulo={selectedArticle}
-          mostrarImagen={imagenesEnArticulos}
-          shareUrl={
-            typeof selectedArticle.codigo_interno === 'number' &&
-            Number.isSafeInteger(selectedArticle.codigo_interno) &&
-            selectedArticle.codigo_interno >= 0 &&
-            selectedArticle.codigo_interno <= 2_147_483_647
-              ? buildCatalogoArticuloUrl(
-                  `/${empresaSlug}/catalogo`,
-                  selectedArticle.codigo_interno,
-                  true,
-                )
-              : null
+          shareUrl={null}
+          onCartAction={
+            carritoHabilitado && !isArticleUnavailable(selectedArticle)
+              ? () => onToggleCart(selectedArticle)
+              : undefined
           }
+          isAddedToCart={cartItems.some(
+            (item) => String(item.articulo.id) === String(selectedArticle.id),
+          )}
+          mostrarImagen={imagenesEnArticulos}
           toleranciaMinDias={toleranciaMinDias}
           toleranciaMaxDias={toleranciaMaxDias}
           onClose={closeArticleDetails}

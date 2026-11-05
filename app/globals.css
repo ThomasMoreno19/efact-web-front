@@ -58,3 +58,16 @@ body {
   color: var(--app-foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
+
+@keyframes warning-text-shadow-fade {
+  from {
+    text-shadow: 0 0 0.22rem var(--app-stock-warning);
+  }
+  to {
+    text-shadow: 0 0 0 transparent;
+  }
+}
+
+.animate-warning-text-shadow-fade {
+  animation: warning-text-shadow-fade 2s ease-out forwards;
+}

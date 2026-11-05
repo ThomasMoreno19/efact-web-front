@@ -4,6 +4,7 @@ import { Camera, LoaderCircle, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { IScannerControls } from '@zxing/browser';
 import type { BarcodeFormat, DecodeHintType } from '@zxing/library';
+import { useDialogBackdropDismiss } from '@/hooks/use-dialog-backdrop-dismiss';
 import {
   estimateBarcodeRegion,
   type BarcodeImageRegion,
@@ -59,6 +60,7 @@ export function BarcodeScannerButton({
   const [error, setError] = useState<string | null>(null);
   const [ocrStatus, setOcrStatus] = useState<BarcodeOcrStatus>('idle');
   const [barcodeRegion, setBarcodeRegion] = useState<BarcodeRegionEstimate | null>(null);
+  const backdropDismissProps = useDialogBackdropDismiss(closeScanner);
 
   onDetectedRef.current = onDetected;
 
@@ -726,9 +728,7 @@ export function BarcodeScannerButton({
           event.preventDefault();
           closeScanner();
         }}
-        onClick={(event) => {
-          if (event.target === event.currentTarget) closeScanner();
-        }}
+        {...backdropDismissProps}
         className="m-auto w-[calc(100%-2rem)] max-w-xl border-0 bg-transparent p-0 text-foreground backdrop:bg-black/75"
       >
         <section className="rounded-card border border-border bg-surface p-5 shadow-2xl sm:p-7">

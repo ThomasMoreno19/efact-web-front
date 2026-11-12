@@ -6,8 +6,10 @@ import { Clock } from "lucide-react";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { DialogShell } from "@/components/ui/dialog-shell";
 import { Input } from "@/components/ui/input";
+import { useStatusToast } from "@/components/ui/status-toast";
 import { getHorarios, saveHorarios } from "@/features/horario/services/horario-client.service";
 import type { Horario } from "@/features/horario/types/horario";
+import { PedidosFueraHorarioSetting } from "@/features/horario/components/pedidos-fuera-horario-setting";
 import {
   formatScheduleDays,
   formatScheduleRange,
@@ -25,7 +27,14 @@ interface ScheduleOverlap {
   second: Horario;
 }
 
-export function HorarioAdminPanel({ empresaId }: { empresaId: number }) {
+export function HorarioAdminPanel({
+  empresaId,
+  pedidosFueraHorario,
+}: {
+  empresaId: number;
+  pedidosFueraHorario: boolean;
+}) {
+  const showStatusToast = useStatusToast();
   const [horarios, setHorarios] = useState<Horario[]>([]);
   const [preview, setPreview] = useState<Horario[]>([]);
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
@@ -36,7 +45,6 @@ export function HorarioAdminPanel({ empresaId }: { empresaId: number }) {
   const [isSaving, setIsSaving] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [loadVersion, setLoadVersion] = useState(0);
 
   useEffect(() => {
@@ -72,7 +80,6 @@ export function HorarioAdminPanel({ empresaId }: { empresaId: number }) {
     setHoraApertura("");
     setHoraCierre("");
     setFormError(null);
-    setNotice(null);
     setIsEditing(true);
   }
 
@@ -141,7 +148,6 @@ export function HorarioAdminPanel({ empresaId }: { empresaId: number }) {
 
     setIsSaving(true);
     setFormError(null);
-    setNotice(null);
     try {
       const updated = await saveHorarios(
         empresaId,
@@ -149,12 +155,13 @@ export function HorarioAdminPanel({ empresaId }: { empresaId: number }) {
       );
       setHorarios(sortScheduleEntries(updated));
       setIsEditing(false);
-      setNotice("El horario de la empresa se guardó correctamente.");
+      showStatusToast("El horario de la empresa se guardó correctamente.", "success");
     } catch (error) {
-      setFormError(
+      showStatusToast(
         error instanceof Error
           ? error.message
           : "No se pudo guardar el horario. Intentá nuevamente.",
+        "error",
       );
     } finally {
       setIsSaving(false);
@@ -237,14 +244,10 @@ export function HorarioAdminPanel({ empresaId }: { empresaId: number }) {
         </>
       )}
 
-      {notice ? (
-        <p
-          role="status"
-          className="mt-5 rounded-button border border-brand/30 bg-brand/10 p-3 text-sm"
-        >
-          {notice}
-        </p>
-      ) : null}
+      <PedidosFueraHorarioSetting
+        empresaId={empresaId}
+        initialValue={pedidosFueraHorario}
+      />
 
       {isEditing ? (
         <DialogShell onClose={closeEditor} title="Modificar horario">

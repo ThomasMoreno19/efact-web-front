@@ -9,6 +9,7 @@ import {
   INTERNAL_REFRESH_COOKIE,
   INTERNAL_SESSION_COOKIE,
 } from "@/features/auth/constants/internal-auth-cookies";
+import { EXTERNAL_REFRESH_COOKIE, EXTERNAL_SESSION_COOKIE } from "@/features/auth/constants/external-auth-cookies";
 import { fetchBackend } from "@/services/backend-api";
 
 export interface BackendAuthTokens {
@@ -118,6 +119,19 @@ export function setInternalAuthCookies(
     path: "/",
     maxAge: tokens.refreshTokenMaxAgeSeconds,
   });
+}
+
+export function setExternalAuthCookies(response: NextResponse, tokens: BackendAuthRefreshTokens): void {
+  const secure = process.env.NODE_ENV === "production";
+  response.cookies.set(EXTERNAL_SESSION_COOKIE, tokens.accessToken, { httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: tokens.accessTokenMaxAgeSeconds });
+  response.cookies.set(EXTERNAL_REFRESH_COOKIE, tokens.refreshToken, { httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: tokens.refreshTokenMaxAgeSeconds });
+}
+
+export function clearExternalAuthCookies(response: NextResponse): void {
+  const secure = process.env.NODE_ENV === "production";
+  for (const name of [EXTERNAL_SESSION_COOKIE, EXTERNAL_REFRESH_COOKIE]) {
+    response.cookies.set(name, "", { httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: 0 });
+  }
 }
 
 export function clearAdminAuthCookies(response: NextResponse): void {

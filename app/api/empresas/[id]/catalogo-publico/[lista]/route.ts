@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { fetchBackend } from '@/services/backend-api';
 import { isCatalogoListaPublica } from '@/features/catalogo/services/catalogo-publico.service';
 import { isValidCatalogoArticleId } from '@/features/catalogo/utils/catalogo-carrito-url';
+import { proxyExternalBackendRequest } from '@/services/external-backend-proxy.service';
 
 interface RouteContext {
   params: Promise<{ id: string; lista: string }>;
@@ -68,18 +68,7 @@ export async function GET(request: Request, { params }: RouteContext) {
   rubroIds.forEach((id) => query.append('rubroId', id));
 
   try {
-    const response = await fetchBackend(
-      `/empresas/${id}/catalogo-publico/${lista}?${query.toString()}`,
-      { cache: 'no-store' },
-    );
-    const body = await response.text();
-    return new NextResponse(body || null, {
-      status: response.status,
-      headers: {
-        'Content-Type': response.headers.get('content-type') ?? 'application/json',
-        'Cache-Control': 'no-store',
-      },
-    });
+    return proxyExternalBackendRequest(`empresas/${id}/catalogo-publico/${lista}?${query.toString()}`);
   } catch {
     return invalidRequest('No se pudo conectar con el servidor.', 503);
   }

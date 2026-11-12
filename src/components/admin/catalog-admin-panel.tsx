@@ -6,6 +6,7 @@ import type { FormEvent } from "react";
 import InvisibleImage from "../../../public/transparent.svg";
 import { CatalogAdminImageField } from "@/components/admin/catalog-admin-image-field";
 import { DialogShell } from "@/components/ui/dialog-shell";
+import { useStatusToast } from "@/components/ui/status-toast";
 import { Input } from "@/components/ui/input";
 import {
   ACCEPTED_CATALOG_RECORD_IMAGE_MIME_TYPES,
@@ -93,7 +94,7 @@ export function CatalogAdminPanel<T extends CatalogAdminRecord>({
   const [hasMore, setHasMore] = useState(false);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const showStatusToast = useStatusToast();
   const [searchText, setSearchText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
@@ -142,7 +143,6 @@ export function CatalogAdminPanel<T extends CatalogAdminRecord>({
       setIsLoading(true);
       setIsLoadingMore(false);
       setError(null);
-      setNotice(null);
       setReloadKey((current) => current + 1);
     }, 300);
     return () => window.clearTimeout(timeout);
@@ -182,7 +182,11 @@ export function CatalogAdminPanel<T extends CatalogAdminRecord>({
     setReloadKey((current) => current + 1);
   }
 
-  async function saveRecord(values: CatalogAdminValues, image: File | null) {
+  async function saveRecord(
+    values: CatalogAdminValues,
+    image: File | null,
+    removeImage: boolean,
+  ) {
     if (!editingRecord) return;
     const data = definition.toUpdatePayload(values);
     if (image && definition.updateRecordWithImage) {
@@ -193,10 +197,13 @@ export function CatalogAdminPanel<T extends CatalogAdminRecord>({
         image,
       );
     } else {
-      await definition.updateRecord(empresaId, editingRecord.id, data);
+      await definition.updateRecord(empresaId, editingRecord.id, {
+        ...data,
+        ...(removeImage ? { logo_url: null } : {}),
+      });
     }
     setEditingRecord(null);
-    setNotice("Registro actualizado.");
+    showStatusToast("Registro actualizado.", "success");
     reload();
   }
 
@@ -204,7 +211,7 @@ export function CatalogAdminPanel<T extends CatalogAdminRecord>({
     if (!deletingRecord) return;
     await definition.deleteRecord(empresaId, deletingRecord.id);
     setDeletingRecord(null);
-    setNotice("Registro eliminado.");
+    showStatusToast("Registro eliminado.", "success");
     reload();
   }
 
@@ -242,11 +249,6 @@ export function CatalogAdminPanel<T extends CatalogAdminRecord>({
           </button>
         </p>
       ) : null}
-      {notice ? (
-        <p role="status" className="mt-5 text-sm text-muted">
-          {notice}
-        </p>
-      ) : null}
       {!isLoading && !error && records.length === 0 ? (
         <p className="mt-6 text-sm text-muted">
           {searchQuery
@@ -279,7 +281,9 @@ export function CatalogAdminPanel<T extends CatalogAdminRecord>({
           definition={definition}
           record={editingRecord}
           onClose={() => setEditingRecord(null)}
-          onSave={(values, image) => saveRecord(values, image)}
+          onSave={(values, image, removeImage) =>
+            saveRecord(values, image, removeImage)
+          }
         />
       ) : null}
       {deletingRecord ? (
@@ -509,12 +513,48 @@ function CatalogAdminEditDialog<T extends CatalogAdminRecord>({
   definition: CatalogAdminDefinition<T>;
   record: T;
   onClose: () => void;
-  onSave: (values: CatalogAdminValues, image: File | null) => Promise<void>;
+  onSave: (
+    values: CatalogAdminValues,
+    image: File | null,
+    removeImage: boolean,
+  ) => Promise<void>;
 }) {
   const [values, setValues] = useState(() => definition.getInitialValues(record));
+  const initialValues = useRef(values);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [removeImage, setRemoveImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const showStatusToast = useStatusToast();
   const [isSaving, setIsSaving] = useState(false);
+  const [showUnsavedConfirmation, setShowUnsavedConfirmation] = useState(false);
+  const hasUnsavedChanges =
+    JSON.stringify(values) !== JSON.stringify(initialValues.current) ||
+    imageFile !== null ||
+    removeImage;
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    function warnBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  function requestClose() {
+    if (isSaving) return;
+    if (hasUnsavedChanges) {
+      setShowUnsavedConfirmation(true);
+      return;
+    }
+    onClose();
+  }
+
+  function discardChanges() {
+    setShowUnsavedConfirmation(false);
+    onClose();
+  }
 
   function updateValue(id: string, value: CatalogAdminValue) {
     setValues((current) => ({ ...current, [id]: value }));
@@ -540,25 +580,35 @@ function CatalogAdminEditDialog<T extends CatalogAdminRecord>({
     }
     setIsSaving(true);
     try {
-      await onSave(values, imageFile);
+      await onSave(values, imageFile, removeImage);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudo guardar el registro.");
+      showStatusToast(
+        cause instanceof Error ? cause.message : "No se pudo guardar el registro.",
+        "error",
+      );
     } finally {
       setIsSaving(false);
     }
   }
 
   return (
-    <DialogShell
-      title={`Editar ${definition.getTitle(record)}`}
-      onClose={onClose}
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <>
+      <DialogShell
+        title={`Editar ${definition.getTitle(record)}`}
+        onClose={requestClose}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
         {definition.getImageUrl && definition.updateRecordWithImage ? (
           <CatalogAdminImageField
             currentImageUrl={definition.getImageUrl(record)}
             file={imageFile}
-            onFileChange={setImageFile}
+            removeCurrentImage={removeImage}
+            onFileChange={(file) => {
+              setImageFile(file);
+              if (file) setRemoveImage(false);
+            }}
+            onRemoveCurrentImage={() => setRemoveImage(true)}
+            onUndoRemoveImage={() => setRemoveImage(false)}
           />
         ) : null}
         <div className="grid gap-4 sm:grid-cols-2">
@@ -607,7 +657,7 @@ function CatalogAdminEditDialog<T extends CatalogAdminRecord>({
         <div className="flex justify-end gap-3 pt-2">
           <button
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             disabled={isSaving}
             className="h-11 rounded-button border border-border px-4 text-sm font-medium transition hover:bg-surface-raised disabled:opacity-60"
           >
@@ -621,8 +671,35 @@ function CatalogAdminEditDialog<T extends CatalogAdminRecord>({
             {isSaving ? "Guardando..." : "Guardar cambios"}
           </button>
         </div>
-      </form>
-    </DialogShell>
+        </form>
+      </DialogShell>
+      {showUnsavedConfirmation ? (
+        <DialogShell
+          title="Cambios sin guardar"
+          onClose={() => setShowUnsavedConfirmation(false)}
+        >
+          <p className="text-sm leading-6 text-muted">
+            Si salís ahora, se perderán los cambios que hiciste.
+          </p>
+          <div className="mt-6 flex flex-col-reverse justify-end gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => setShowUnsavedConfirmation(false)}
+              className="h-11 rounded-button border border-border px-5 text-sm font-semibold transition hover:bg-surface-raised"
+            >
+              Seguir editando
+            </button>
+            <button
+              type="button"
+              onClick={discardChanges}
+              className="h-11 rounded-button bg-danger px-5 text-sm font-semibold text-background transition hover:opacity-90"
+            >
+              Descartar cambios
+            </button>
+          </div>
+        </DialogShell>
+      ) : null}
+    </>
   );
 }
 
@@ -636,6 +713,7 @@ function CatalogAdminDeleteDialog({
   onDelete: () => Promise<void>;
 }) {
   const [error, setError] = useState<string | null>(null);
+  const showStatusToast = useStatusToast();
   const [isDeleting, setIsDeleting] = useState(false);
 
   async function handleDelete() {
@@ -645,7 +723,10 @@ function CatalogAdminDeleteDialog({
     try {
       await onDelete();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "No se pudo eliminar el registro.");
+      showStatusToast(
+        cause instanceof Error ? cause.message : "No se pudo eliminar el registro.",
+        "error",
+      );
     } finally {
       setIsDeleting(false);
     }

@@ -14,3 +14,10 @@ export async function getEmpresaPublicaBySlug(
   }
   return response.json();
 }
+
+export async function empresaRequiereAccesoExterno(id: number): Promise<boolean> {
+  const response = await fetchBackend(`/empresas/${id}/usuarios-externos/habilitado`, { cache: "no-store" });
+  if (!response.ok) throw new Error("No se pudo verificar el acceso al catálogo.");
+  const payload = await response.json() as { requiereAutenticacion?: unknown };
+  return payload.requiereAutenticacion === true;
+}

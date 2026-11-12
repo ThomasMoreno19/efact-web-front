@@ -6,8 +6,10 @@ import {
   deleteProveedor,
   getProveedores,
   updateProveedor,
+  updateProveedorWithImage,
 } from "@/features/proveedor/services/proveedor-admin.service";
 import type { Proveedor } from "@/features/proveedor/types/proveedor";
+import { getAccessibleImageUrl } from "@/services/image-url";
 
 const definition: CatalogAdminDefinition<Proveedor> = {
   label: "Proveedores",
@@ -18,9 +20,11 @@ const definition: CatalogAdminDefinition<Proveedor> = {
   ],
   loadPage: getProveedores,
   updateRecord: updateProveedor,
+  updateRecordWithImage: updateProveedorWithImage,
   deleteRecord: deleteProveedor,
   getTitle: (proveedor) => proveedor.nombre,
   getSubtitle: (proveedor) => proveedor.abreviatura,
+  getImageUrl: (proveedor) => getAccessibleImageUrl(proveedor.logo_url?.trim() ?? null),
   getInitialValues: (proveedor) => ({
     nombre: proveedor.nombre,
     abreviatura: proveedor.abreviatura ?? "",

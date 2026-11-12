@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { fetchBackend } from '@/services/backend-api';
+import { proxyExternalBackendRequest } from '@/services/external-backend-proxy.service';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -21,20 +21,7 @@ export async function POST(request: Request, { params }: RouteContext) {
   }
 
   try {
-    const response = await fetchBackend(`/empresas/${id}/pedidos`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      cache: 'no-store',
-      body: JSON.stringify(body),
-    });
-    const responseBody = await response.text();
-    return new NextResponse(responseBody || null, {
-      status: response.status,
-      headers: {
-        'Content-Type': response.headers.get('content-type') ?? 'application/json',
-        'Cache-Control': 'no-store',
-      },
-    });
+    return proxyExternalBackendRequest(`empresas/${id}/pedidos`, 'POST', JSON.stringify(body));
   } catch {
     return invalidRequest('No se pudo conectar con el servidor.', 503);
   }

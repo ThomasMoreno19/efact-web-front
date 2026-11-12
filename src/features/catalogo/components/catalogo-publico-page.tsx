@@ -20,8 +20,7 @@ import {
   CatalogoCarritoPage,
   PedidoClientePage,
 } from '@/features/catalogo/components/catalogo-checkout-page';
-import { CompanyLogo } from '@/features/empresa/components/company-logo';
-import { CompanyPublicPageNavigation } from '@/features/empresa/components/company-public-page-navigation';
+import { CompanyPublicPageHeader } from '@/features/empresa/components/company-public-page-header';
 import { BarcodeScannerButton } from '@/features/articulo/components/barcode-scanner-button';
 import type { EmpresaPublica } from '@/features/empresa/types/empresa';
 import { getHorariosPublicos } from '@/features/horario/services/horario-public.service';
@@ -103,12 +102,14 @@ export function CatalogoPublicoPage({
   initialCartEntries,
   initialArticleCode = null,
   initialOpenArticleDetails = false,
+  replaceCategoryFilters = false,
 }: {
   empresa: EmpresaPublica;
   initialView: 'catalogo' | 'carrito';
   initialCartEntries: CatalogoCarritoEntrada[];
   initialArticleCode?: string | null;
   initialOpenArticleDetails?: boolean;
+  replaceCategoryFilters?: boolean;
 }) {
   const router = useRouter();
   const initialCartEntriesKey = JSON.stringify(initialCartEntries);
@@ -493,7 +494,10 @@ export function CatalogoPublicoPage({
           (filter) => filter.categoria !== categoria || filter.id !== id,
         );
       }
-      return [...current, { id, categoria, nombre: record.nombre }];
+      const filter = { id, categoria, nombre: record.nombre };
+      return replaceCategoryFilters
+        ? [filter]
+        : [...current, filter];
     });
     setActiveList('articulos');
     setKeepInitialFocus(false);
@@ -514,87 +518,22 @@ export function CatalogoPublicoPage({
 
   return (
     <main className="min-h-screen bg-background px-4 py-8 text-foreground sm:px-6 sm:py-12">
-      <header
-        className={`fixed inset-x-0 z-40 bg-background/95 px-4 backdrop-blur transition-[top,box-shadow] duration-300 sm:px-6 ${
-          compactHeader
-            ? 'top-0 border-b border-border shadow-lg'
-            : 'top-8 border-b border-transparent sm:top-12'
-        }`}
-      >
-        <div
-          className={`relative mx-auto flex max-w-5xl flex-col items-center px-12 text-center transition-all duration-300 ${
-            compactHeader ? 'gap-0 py-2' : 'py-0'
-          }`}
-        >
-          <CompanyPublicPageNavigation
-            empresa={empresa}
-            currentPage="catalogo"
-            containerClassName="absolute left-0 top-1 z-30"
-          />
-          {empresa.incluirCodigoBarra && initialView === 'catalogo' && checkoutStep === 'catalogo' ? (
+      <CompanyPublicPageHeader
+        empresa={empresa}
+        currentPage="catalogo"
+        compact={compactHeader}
+        showContactDetails
+        rightAction={
+          empresa.incluirCodigoBarra &&
+          initialView === 'catalogo' &&
+          checkoutStep === 'catalogo' ? (
             <BarcodeScannerButton
               onDetected={handleBarcodeDetected}
               className="absolute right-0 top-1"
             />
-          ) : null}
-          <div
-            className={`relative flex w-fit max-w-full items-center justify-center overflow-hidden rounded-record bg-surface transition-all duration-300 ${
-              compactHeader ? 'h-12' : 'h-28 sm:h-36'
-            }`}
-          >
-            <CompanyLogo empresa={empresa} fitToHeight />
-          </div>
-          <h1
-            className={`font-semibold tracking-tight transition-all duration-300 ${
-              compactHeader
-                ? 'mt-1 text-lg'
-                : 'mt-4 text-2xl sm:text-3xl'
-            }`}
-          >
-            {empresa.nombre}
-          </h1>
-          <div
-            className={`flex flex-col items-center gap-1 overflow-hidden transition-all duration-300 ${
-              compactHeader
-                ? 'pointer-events-none mt-0 max-h-0 -translate-y-1 opacity-0'
-                : 'mt-2 max-h-20 translate-y-0 opacity-100'
-            }`}
-          >
-            {empresa.ubicacion ? (
-              <p className="flex items-center gap-2 text-sm text-muted">
-                <Image
-                  src="/location.svg"
-                  alt=""
-                  aria-hidden="true"
-                  width={16}
-                  height={16}
-                  className="size-4 shrink-0"
-                />
-                <span>{empresa.ubicacion}</span>
-              </p>
-            ) : null}
-            {empresa.telefono && whatsappNumber ? (
-              <a
-                href={`https://wa.me/${whatsappNumber}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`Contactar a ${empresa.nombre} por WhatsApp`}
-                className="flex items-center gap-2 text-sm text-muted transition hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-              >
-                <Image
-                  src="/whatsapp.svg"
-                  alt=""
-                  aria-hidden="true"
-                  width={16}
-                  height={16}
-                  className="size-4 shrink-0"
-                />
-                <span>{empresa.telefono}</span>
-              </a>
-            ) : null}
-          </div>
-        </div>
-      </header>
+          ) : null
+        }
+      />
 
       <div
         className={`mx-auto w-full max-w-5xl ${

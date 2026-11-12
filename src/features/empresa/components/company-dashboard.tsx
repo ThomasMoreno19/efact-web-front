@@ -4,6 +4,7 @@ import { CompanyCard } from "@/features/empresa/components/company-card";
 import { CompanyFormDialog } from "@/features/empresa/components/company-form-dialog";
 import { CreateCompanyCard } from "@/features/empresa/components/create-company-card";
 import { DeleteCompanyDialog } from "@/features/empresa/components/delete-company-dialog";
+import { useStatusToast } from "@/components/ui/status-toast";
 import type { Empresa } from "@/features/empresa/types/empresa";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -24,12 +25,12 @@ export function CompanyDashboard({
   loadError,
 }: CompanyDashboardProps) {
   const router = useRouter();
+  const showStatusToast = useStatusToast();
   const [dialog, setDialog] = useState<ActiveDialog>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   function finishMutation(message?: string) {
     setDialog(null);
-    setNotice(message ?? null);
+    if (message) showStatusToast(message, "success");
     router.refresh();
   }
 
@@ -63,15 +64,6 @@ export function CompanyDashboard({
           </button>
         </div>
       ) : null}
-      {notice ? (
-        <p
-          role="status"
-          className="mb-6 rounded-card border border-brand/30 bg-brand/10 p-4 text-sm text-foreground"
-        >
-          {notice}
-        </p>
-      ) : null}
-
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <CreateCompanyCard onClick={() => setDialog({ type: "create" })} />
         {empresas.map((empresa) => (

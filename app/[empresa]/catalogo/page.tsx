@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { CatalogoPublicoPage } from '@/features/catalogo/components/catalogo-publico-page';
+import { CatalogoExternoGate } from '@/features/catalogo/components/catalogo-externo-gate';
 import {
   parseCatalogoCarritoEntries,
 } from '@/features/catalogo/utils/catalogo-carrito-url';
 import { parseCatalogoCodigoInterno } from '@/features/catalogo/utils/catalogo-share-url';
-import { getEmpresaPublicaBySlug } from '@/features/empresa/services/empresa-public-query.service';
+import { empresaRequiereAccesoExterno, getEmpresaPublicaBySlug } from '@/features/empresa/services/empresa-public-query.service';
 
 interface CatalogoPageProps {
   params: Promise<{ empresa: string }>;
@@ -33,17 +34,24 @@ export default async function CompanyCatalogPage({
   if (!empresa) redirect('/');
   if (!empresa.catalogoHabilitado) notFound();
   const initialArticleCode = parseCatalogoCodigoInterno(query.producto);
+  const requiereAccesoExterno = await empresaRequiereAccesoExterno(empresa.id);
   const detailParam = Array.isArray(query.detalle)
     ? query.detalle[0]
     : query.detalle;
 
-  return (
+  const pageProps = {
+    empresa,
+    initialCartEntries: parseCatalogoCarritoEntries(query.articulo),
+    initialArticleCode,
+    initialOpenArticleDetails: Boolean(initialArticleCode && detailParam === '1'),
+  };
+
+  return requiereAccesoExterno ? (
+    <CatalogoExternoGate {...pageProps} />
+  ) : (
     <CatalogoPublicoPage
-      empresa={empresa}
       initialView="catalogo"
-      initialCartEntries={parseCatalogoCarritoEntries(query.articulo)}
-      initialArticleCode={initialArticleCode}
-      initialOpenArticleDetails={Boolean(initialArticleCode && detailParam === '1')}
+      {...pageProps}
     />
   );
 }

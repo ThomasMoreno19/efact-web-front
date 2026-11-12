@@ -3,7 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Input } from "@/components/ui/input";
+import { CheckboxField } from "@/components/ui/checkbox-field";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { useStatusToast } from "@/components/ui/status-toast";
 import { CompanyLogo } from "@/features/empresa/components/company-logo";
 import { CompanyLogoUploadField } from "@/features/empresa/components/company-logo-upload-field";
 import {
@@ -18,27 +20,32 @@ export function CompanyInformationSection({
   empresa: Empresa;
 }) {
   const router = useRouter();
+  const showStatusToast = useStatusToast();
   const [nombre, setNombre] = useState(empresa.nombre);
   const [telefono, setTelefono] = useState(empresa.telefono ?? "");
   const [ubicacion, setUbicacion] = useState(empresa.ubicacion ?? "");
+  const [mostrarNombreConLogo, setMostrarNombreConLogo] = useState(
+    empresa.mostrarNombreConLogo ?? false,
+  );
+  const [mostrarNavegacionPaginas, setMostrarNavegacionPaginas] = useState(
+    empresa.mostrarNavegacionPaginas ?? true,
+  );
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   async function saveCompanyInformation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (isSaving) return;
 
     setIsSaving(true);
-    setError(null);
-    setNotice(null);
 
     try {
       await updateEmpresaInformation(empresa.id, {
         nombre: nombre.trim(),
         telefono: telefono.trim() || null,
         ubicacion: ubicacion.trim() || null,
+        mostrarNombreConLogo,
+        mostrarNavegacionPaginas,
       });
 
       if (logoFile) {
@@ -55,13 +62,14 @@ export function CompanyInformationSection({
         setLogoFile(null);
       }
 
-      setNotice("La información de la empresa se guardó correctamente.");
+      showStatusToast("La información de la empresa se guardó correctamente.", "success");
       router.refresh();
     } catch (cause) {
-      setError(
+      showStatusToast(
         cause instanceof Error
           ? cause.message
           : "No se pudo guardar la información de la empresa.",
+        "error",
       );
     } finally {
       setIsSaving(false);
@@ -71,6 +79,7 @@ export function CompanyInformationSection({
   return (
     <CollapsibleSection
       title={`Información de ${empresa.nombre}`}
+      defaultOpen
       icon={
         <span
           aria-hidden="true"
@@ -115,25 +124,29 @@ export function CompanyInformationSection({
             onFileChange={setLogoFile}
             disabled={isSaving}
           />
+          <CheckboxField
+            id="company-show-name-with-logo"
+            checked={mostrarNombreConLogo}
+            onChange={setMostrarNombreConLogo}
+            label="Mostrar nombre junto al logo"
+            description="Si la empresa tiene un logo, también muestra su nombre en los encabezados públicos de catálogo, saldos y reparaciones."
+          />
+          <CheckboxField
+            id="company-page-navigation-enabled"
+            checked={mostrarNavegacionPaginas}
+            onChange={setMostrarNavegacionPaginas}
+            label="Mostrar Navegación de páginas"
+            description="Permite que los clientes naveguen a las demás páginas públicas habilitadas."
+          />
         </fieldset>
 
-        {error ? (
-          <p role="alert" className="mt-5 text-sm text-danger">
-            {error}
-          </p>
-        ) : null}
-        {notice ? (
-          <p role="status" className="mt-5 text-sm text-muted">
-            {notice}
-          </p>
-        ) : null}
         <div className="mt-6 flex justify-end">
           <button
             type="submit"
             disabled={isSaving}
             className="h-11 rounded-button bg-brand px-5 text-sm font-semibold text-brand-foreground transition hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isSaving ? "Guardando…" : "Guardar información"}
+            {isSaving ? "Guardando…" : "Guardar configuración"}
           </button>
         </div>
       </form>

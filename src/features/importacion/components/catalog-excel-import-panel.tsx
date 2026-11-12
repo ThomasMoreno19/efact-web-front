@@ -2,6 +2,11 @@
 
 import { fetchWithAdminSession } from "@/features/auth/services/auth-client.service";
 import { ExcelSyncConfirmationDialog } from "@/components/ui/excel-sync-confirmation-dialog";
+import { useStatusToast } from "@/components/ui/status-toast";
+import {
+  formatExcelImportApiError,
+  type ExcelImportApiError,
+} from "@/services/format-excel-import-error";
 import type { ChangeEvent } from "react";
 import { useRef, useState } from "react";
 
@@ -18,18 +23,6 @@ interface ImportPreview {
   articulosExcel: number;
 }
 
-interface ImportIssue {
-  sheet?: string;
-  row?: number;
-  column?: string;
-  message?: string;
-}
-
-interface ApiError {
-  message?: string | string[];
-  errors?: ImportIssue[];
-}
-
 const MAX_EXCEL_BYTES = 50 * 1024 * 1024;
 
 export function CatalogExcelImportPanel({
@@ -41,6 +34,7 @@ export function CatalogExcelImportPanel({
   excelDisabled: boolean;
   onImportSuccess?: () => void;
 }) {
+  const showStatusToast = useStatusToast();
   const fileInput = useRef<HTMLInputElement>(null);
   const pendingMode = useRef<ImportMode | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,13 +43,11 @@ export function CatalogExcelImportPanel({
   const [syncConfirmationWord, setSyncConfirmationWord] = useState("");
   const [syncFile, setSyncFile] = useState<File | null>(null);
   const [syncPreview, setSyncPreview] = useState<ImportPreview | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   function selectFile(mode: ImportMode) {
     if (isSubmitting || isPreparingConfirmation || excelDisabled) return;
 
-    setNotice(null);
     setError(null);
     pendingMode.current = mode;
     if (fileInput.current) fileInput.current.click();
@@ -100,11 +92,11 @@ export function CatalogExcelImportPanel({
       );
       const payload = (await response.json().catch(() => null)) as
         | ImportPreview
-        | ApiError
+        | ExcelImportApiError
         | null;
 
       if (!response.ok) {
-        setError(formatApiError(payload as ApiError | null));
+        setError(formatExcelImportApiError(payload as ExcelImportApiError | null, "No se pudo procesar el archivo Excel."));
         return;
       }
 
@@ -130,7 +122,6 @@ export function CatalogExcelImportPanel({
 
   async function runImport(file: File, mode: ImportMode) {
     setIsSubmitting(true);
-    setNotice(null);
     setError(null);
 
     const formData = new FormData();
@@ -147,15 +138,15 @@ export function CatalogExcelImportPanel({
       );
       const payload = (await response.json().catch(() => null)) as
         | ImportResponse
-        | ApiError
+        | ExcelImportApiError
         | null;
 
       if (!response.ok) {
-        setError(formatApiError(payload as ApiError | null));
+        showStatusToast(formatExcelImportApiError(payload as ExcelImportApiError | null, "No se pudo procesar el archivo Excel."), "error");
         return;
       }
 
-      setNotice(formatImportResult(payload as ImportResponse | null, mode));
+      showStatusToast(formatImportResult(payload as ImportResponse | null, mode), "success");
       if (mode === "sincronizar") {
         setSyncConfirmationOpen(false);
         setSyncConfirmationWord("");
@@ -164,7 +155,7 @@ export function CatalogExcelImportPanel({
       }
       onImportSuccess?.();
     } catch {
-      setError("No se pudo conectar con el servidor para cargar el Excel.");
+      showStatusToast("No se pudo conectar con el servidor para cargar el Excel.", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -249,14 +240,6 @@ export function CatalogExcelImportPanel({
           Revisando los artículos del Excel…
         </p>
       ) : null}
-      {notice ? (
-        <p
-          role="status"
-          className="mt-5 rounded-button border border-brand/30 bg-brand/10 p-3 text-sm"
-        >
-          {notice}
-        </p>
-      ) : null}
       {error ? (
         <p
           role="alert"
@@ -317,32 +300,6 @@ function validateFile(file: File) {
     return "El archivo no puede superar los 50 MB.";
   }
   return null;
-}
-
-function formatApiError(payload: ApiError | null) {
-  if (payload?.errors?.length) {
-    const rowErrors = payload.errors.slice(0, 8).map((issue) => {
-      const location = [
-        issue.sheet,
-        issue.row ? `fila ${issue.row}` : null,
-        issue.column,
-      ]
-        .filter(Boolean)
-        .join(" · ");
-      return `${location ? `${location}: ` : ""}${issue.message ?? "Dato inválido."}`;
-    });
-    const remaining = payload.errors.length - rowErrors.length;
-    if (remaining > 0) rowErrors.push(`Y ${remaining} errores más.`);
-    return [
-      typeof payload.message === "string" ? payload.message : null,
-      ...rowErrors,
-    ]
-      .filter(Boolean)
-      .join("\n");
-  }
-
-  if (Array.isArray(payload?.message)) return payload.message.join(" ");
-  return payload?.message ?? "No se pudo procesar el archivo Excel.";
 }
 
 function formatImportResult(payload: ImportResponse | null, mode: ImportMode) {

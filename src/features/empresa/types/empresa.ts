@@ -11,6 +11,7 @@ export interface Empresa {
   saldosHabilitados: boolean;
   reparacionesHabilitadas: boolean;
   mostrarNavegacionPaginas: boolean;
+  mostrarNombreConLogo: boolean;
   imagenesEnArticulos: boolean;
   incluirHorarios: boolean;
   pedidosFueraHorario: boolean;
@@ -31,6 +32,7 @@ export interface EmpresaPublica {
   saldosHabilitados: boolean;
   reparacionesHabilitadas: boolean;
   mostrarNavegacionPaginas: boolean;
+  mostrarNombreConLogo: boolean;
   imagenesEnArticulos: boolean;
   pedidosFueraHorario: boolean;
   incluirCodigoBarra: boolean;
@@ -54,6 +56,8 @@ export interface EmpresaInformationInput {
   nombre: string;
   telefono: string | null;
   ubicacion: string | null;
+  mostrarNombreConLogo: boolean;
+  mostrarNavegacionPaginas: boolean;
 }
 
 export interface EmpresaPageNavigationInput {

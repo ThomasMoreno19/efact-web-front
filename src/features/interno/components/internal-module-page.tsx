@@ -81,7 +81,9 @@ export function InternalModulePage({
             <CompanyLogo empresa={empresa} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold">{empresa.nombre}</p>
+            {!empresa.logo_url?.trim() ? (
+              <p className="truncate font-semibold">{empresa.nombre}</p>
+            ) : null}
             <p className="text-sm text-muted">{moduleLabel}</p>
           </div>
           {session && modulo === "catalogo" && empresa.incluirCodigoBarra ? (

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { useStatusToast } from "@/components/ui/status-toast";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { UserRound } from "lucide-react";
@@ -17,6 +18,7 @@ export function CompanyAdminUserSettings({
 }: {
   empresaId: number;
 }) {
+  const showStatusToast = useStatusToast();
   const [adminUser, setAdminUser] = useState<CompanyAdminUser | null>(null);
   const [nombre, setNombre] = useState("");
   const [contrasenaActual, setContrasenaActual] = useState("");
@@ -26,7 +28,6 @@ export function CompanyAdminUserSettings({
   const [isSaving, setIsSaving] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const passwordChangeRequested = Boolean(
     contrasenaActual || contrasenaNueva || repetirContrasenaNueva,
@@ -63,7 +64,6 @@ export function CompanyAdminUserSettings({
     if (isSaving) return;
 
     setError(null);
-    setNotice(null);
 
     if (nombre.trim().length === 0) {
       setError("Ingresá un nombre de usuario.");
@@ -119,16 +119,18 @@ export function CompanyAdminUserSettings({
       setContrasenaActual("");
       setContrasenaNueva("");
       setRepetirContrasenaNueva("");
-      setNotice(
+      showStatusToast(
         adminUser
           ? "Los datos del usuario se guardaron correctamente."
           : "El usuario se creó correctamente.",
+        "success",
       );
     } catch (cause) {
-      setError(
+      showStatusToast(
         cause instanceof Error
           ? cause.message
           : "No se pudieron guardar los datos del usuario.",
+        "error",
       );
     } finally {
       setIsSaving(false);
@@ -172,7 +174,6 @@ export function CompanyAdminUserSettings({
           repetirContrasenaNueva={repetirContrasenaNueva}
           onRepetirContrasenaNuevaChange={setRepetirContrasenaNueva}
           error={error}
-          notice={notice}
           isSaving={isSaving}
           isExistingUser={false}
           onSubmit={saveAdminUser}
@@ -188,7 +189,6 @@ export function CompanyAdminUserSettings({
           repetirContrasenaNueva={repetirContrasenaNueva}
           onRepetirContrasenaNuevaChange={setRepetirContrasenaNueva}
           error={error}
-          notice={notice}
           isSaving={isSaving}
           isExistingUser
           onSubmit={saveAdminUser}
@@ -208,7 +208,6 @@ function AdminUserForm({
   repetirContrasenaNueva,
   onRepetirContrasenaNuevaChange,
   error,
-  notice,
   isSaving,
   isExistingUser,
   onSubmit,
@@ -222,7 +221,6 @@ function AdminUserForm({
   repetirContrasenaNueva: string;
   onRepetirContrasenaNuevaChange: (value: string) => void;
   error: string | null;
-  notice: string | null;
   isSaving: boolean;
   isExistingUser: boolean;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -301,11 +299,6 @@ function AdminUserForm({
         {error ? (
           <p role="alert" className="mt-5 text-sm text-danger">
             {error}
-          </p>
-        ) : null}
-        {notice ? (
-          <p role="status" className="mt-5 text-sm text-muted">
-            {notice}
           </p>
         ) : null}
         <div className="mt-6 flex justify-end">

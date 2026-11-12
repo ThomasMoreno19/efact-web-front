@@ -14,6 +14,7 @@
   --app-brand-foreground: #181818;
   --app-border: #3a3a3a;
   --app-danger: #f87171;
+  --app-success: #22c55e;
   --app-row-alternate: color-mix(in srgb, var(--app-surface) 95%, white 5%);
   --app-stock-low: #ef4444;
   --app-stock-warning: #eab308;
@@ -38,6 +39,7 @@
   --color-brand-foreground: var(--app-brand-foreground);
   --color-border: var(--app-border);
   --color-danger: var(--app-danger);
+  --color-success: var(--app-success);
   --color-row-alternate: var(--app-row-alternate);
   --color-stock-low: var(--app-stock-low);
   --color-stock-warning: var(--app-stock-warning);
@@ -51,6 +53,19 @@
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+}
+
+@keyframes status-toast-error-pulse {
+  0%,
+  100% {
+    border-color: color-mix(in srgb, var(--app-danger) 55%, transparent);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--app-danger) 0%, transparent);
+  }
+
+  50% {
+    border-color: var(--app-danger);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-danger) 30%, transparent);
+  }
 }
 
 body {

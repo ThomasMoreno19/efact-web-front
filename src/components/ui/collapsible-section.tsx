@@ -6,14 +6,17 @@ export function CollapsibleSection({
   children,
   icon,
   nested = false,
+  defaultOpen = false,
 }: {
   title: string;
   children: ReactNode;
   icon?: ReactNode;
   nested?: boolean;
+  defaultOpen?: boolean;
 }) {
   return (
     <details
+      open={defaultOpen}
       className={
         nested
           ? "group/subsection border-t border-border pt-6"

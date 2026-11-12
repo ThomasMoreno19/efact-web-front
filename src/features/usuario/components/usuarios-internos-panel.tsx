@@ -5,7 +5,8 @@ import { UserRound } from "lucide-react";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { DialogShell } from "@/components/ui/dialog-shell";
 import { PasswordInput } from "@/components/ui/password-input";
-import { UsuarioInternoCard } from "@/features/usuario/components/usuario-interno-card";
+import { useStatusToast } from "@/components/ui/status-toast";
+import { UsuarioAccesoCard } from "@/features/usuario/components/usuario-acceso-card";
 import {
   createUsuarioInterno,
   deleteUsuarioInterno,
@@ -19,6 +20,7 @@ export function UsuariosInternosPanel({
 }: {
   empresaId: number;
 }) {
+  const showStatusToast = useStatusToast();
   const [usuarios, setUsuarios] = useState<UsuarioInterno[]>([]);
   const [contrasena, setContrasena] = useState("");
   const [editingUsuario, setEditingUsuario] = useState<UsuarioInterno | null>(null);
@@ -29,7 +31,6 @@ export function UsuariosInternosPanel({
   const [reloadKey, setReloadKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [dialogError, setDialogError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -56,18 +57,18 @@ export function UsuariosInternosPanel({
 
     setIsSaving(true);
     setError(null);
-    setNotice(null);
     try {
       await createUsuarioInterno(empresaId, { contrasena });
       setContrasena("");
-      setNotice("El usuario interno se agregó correctamente.");
+      showStatusToast("El usuario interno se agregó correctamente.", "success");
       setIsLoading(true);
       setReloadKey((current) => current + 1);
     } catch (cause) {
-      setError(
+      showStatusToast(
         cause instanceof Error
           ? cause.message
           : "No se pudo agregar el usuario interno.",
+        "error",
       );
     } finally {
       setIsSaving(false);
@@ -96,7 +97,6 @@ export function UsuariosInternosPanel({
     setIsSaving(true);
     setDialogError(null);
     setError(null);
-    setNotice(null);
     try {
       const updatedUsuario = await updateUsuarioInterno(
         empresaId,
@@ -110,14 +110,15 @@ export function UsuariosInternosPanel({
           usuario.id === updatedUsuario.id ? updatedUsuario : usuario,
         ),
       );
-      setNotice("La contraseña del usuario interno se actualizó correctamente.");
+      showStatusToast("La contraseña del usuario interno se actualizó correctamente.", "success");
       setEditingUsuario(null);
       setEditingContrasena("");
     } catch (cause) {
-      setDialogError(
+      showStatusToast(
         cause instanceof Error
           ? cause.message
           : "No se pudo actualizar el usuario interno.",
+        "error",
       );
     } finally {
       setIsSaving(false);
@@ -130,19 +131,19 @@ export function UsuariosInternosPanel({
     setIsSaving(true);
     setDialogError(null);
     setError(null);
-    setNotice(null);
     try {
       await deleteUsuarioInterno(empresaId, deletingUsuario.id);
       setUsuarios((current) =>
         current.filter((usuario) => usuario.id !== deletingUsuario.id),
       );
-      setNotice("El usuario interno se eliminó correctamente.");
+      showStatusToast("El usuario interno se eliminó correctamente.", "success");
       setDeletingUsuario(null);
     } catch (cause) {
-      setDialogError(
+      showStatusToast(
         cause instanceof Error
           ? cause.message
           : "No se pudo eliminar el usuario interno.",
+        "error",
       );
     } finally {
       setIsSaving(false);
@@ -166,11 +167,6 @@ export function UsuariosInternosPanel({
             {error}
           </p>
         ) : null}
-        {notice ? (
-          <p role="status" className="mt-5 text-sm text-muted">
-            {notice}
-          </p>
-        ) : null}
 
         <div className="mt-6 pt-5">
           {isLoading ? (
@@ -186,9 +182,10 @@ export function UsuariosInternosPanel({
           {!isLoading && usuarios.length > 0 ? (
             <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {usuarios.map((usuario) => (
-                <UsuarioInternoCard
+                <UsuarioAccesoCard
                   key={usuario.id}
                   usuario={usuario}
+                  tipo="interno"
                   onEdit={() => openEditDialog(usuario)}
                   onDelete={() => openDeleteDialog(usuario)}
                 />

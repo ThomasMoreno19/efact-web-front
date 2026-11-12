@@ -18,7 +18,7 @@ export async function updateEmpresa(id: number, input: EmpresaInput) {
 
 export async function updateEmpresaCatalogSettings(
   id: number,
-  input: EmpresaConfiguracionCatalogoInput,
+  input: Partial<EmpresaConfiguracionCatalogoInput>,
 ) {
   await sendEmpresaRequest(`/api/admin/empresas/${id}`, "PATCH", input);
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { DialogShell } from "@/components/ui/dialog-shell";
+import { useStatusToast } from "@/components/ui/status-toast";
 import { deleteEmpresa } from "@/features/empresa/services/empresa-client.service";
 import type { Empresa } from "@/features/empresa/types/empresa";
 
@@ -16,20 +17,21 @@ export function DeleteCompanyDialog({
   onClose,
   onDeleted,
 }: DeleteCompanyDialogProps) {
-  const [error, setError] = useState<string | null>(null);
+  const showStatusToast = useStatusToast();
   const [isDeleting, setIsDeleting] = useState(false);
 
   async function handleDelete() {
     if (isDeleting) return;
-    setError(null);
     setIsDeleting(true);
 
     try {
       await deleteEmpresa(empresa.id);
+      showStatusToast("La empresa se eliminó correctamente.", "success");
       onDeleted();
     } catch (cause) {
-      setError(
+      showStatusToast(
         cause instanceof Error ? cause.message : "No se pudo eliminar la empresa.",
+        "error",
       );
     } finally {
       setIsDeleting(false);
@@ -43,11 +45,6 @@ export function DeleteCompanyDialog({
         <strong className="font-semibold text-foreground">{empresa.nombre}</strong>?
         Esta acción no se puede deshacer.
       </p>
-      {error ? (
-        <p role="alert" className="mt-4 text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
       <div className="mt-6 flex justify-end gap-3">
         <button
           type="button"

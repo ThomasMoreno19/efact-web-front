@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { DialogShell } from "@/components/ui/dialog-shell";
+import { useStatusToast } from "@/components/ui/status-toast";
 import {
   createEmpresa,
   uploadEmpresaLogo,
@@ -33,6 +34,7 @@ export function CompanyFormDialog({
   onClose,
   onSaved,
 }: CompanyFormDialogProps) {
+  const showStatusToast = useStatusToast();
   const [nombre, setNombre] = useState(empresa?.nombre ?? "");
   const [slug, setSlug] = useState(empresa?.slug ?? "");
   const [telefono, setTelefono] = useState(empresa?.telefono ?? "");
@@ -187,10 +189,11 @@ export function CompanyFormDialog({
       setAdminPassword("");
 
       if (logoFile) await uploadEmpresaLogo(empresaId, logoFile);
-      onSaved();
+      onSaved(empresa ? "La empresa se modificó correctamente." : "La empresa se agregó correctamente.");
     } catch (cause) {
-      setError(
+      showStatusToast(
         cause instanceof Error ? cause.message : "No se pudo guardar la empresa.",
+        "error",
       );
     } finally {
       setIsSaving(false);

@@ -3,14 +3,15 @@
 import { useRef, useState } from "react";
 import { MoreVertical, Pencil, Trash2, UserRound } from "lucide-react";
 import { useDismissLayer } from "@/hooks/use-dismiss-layer";
-import type { UsuarioInterno } from "@/features/usuario/types/usuario-interno";
 
-export function UsuarioInternoCard({
+export function UsuarioAccesoCard({
   usuario,
+  tipo,
   onEdit,
   onDelete,
 }: {
-  usuario: UsuarioInterno;
+  usuario: { id: number };
+  tipo: "interno" | "externo";
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -24,7 +25,7 @@ export function UsuarioInternoCard({
         <div ref={menuRef} className="absolute right-3 top-3 z-20">
           <button
             type="button"
-            aria-label={`Opciones del usuario interno ${usuario.id}`}
+            aria-label={`Opciones del usuario ${tipo} ${usuario.id}`}
             aria-haspopup="menu"
             aria-expanded={isMenuOpen}
             onClick={() => setIsMenuOpen((open) => !open)}
@@ -72,7 +73,7 @@ export function UsuarioInternoCard({
           strokeWidth={1.6}
         />
         <p className="mt-3 max-w-full break-all text-sm font-semibold">
-          Usuario interno {usuario.id}
+           Usuario {tipo} {usuario.id}
         </p>
       </article>
     </li>

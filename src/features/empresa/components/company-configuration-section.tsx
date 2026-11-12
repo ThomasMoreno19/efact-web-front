@@ -6,11 +6,12 @@ import { ShoppingBag } from "lucide-react";
 import { CheckboxField } from "@/components/ui/checkbox-field";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Input } from "@/components/ui/input";
+import { useStatusToast } from "@/components/ui/status-toast";
 import { HorarioAdminPanel } from "@/features/horario/components/horario-admin-panel";
 import { UsuariosInternosPanel } from "@/features/usuario/components/usuarios-internos-panel";
+import { UsuariosExternosPanel } from "@/features/usuario/components/usuarios-externos-panel";
 import { CompanyAdminUserSettings } from "@/features/empresa/components/company-admin-user-settings";
 import { CompanyInformationSection } from "@/features/empresa/components/company-information-section";
-import { CompanyPageNavigationSetting } from "@/features/empresa/components/company-page-navigation-setting";
 import { updateEmpresaCatalogSettings } from "@/features/empresa/services/empresa-client.service";
 import type { Empresa } from "@/features/empresa/types/empresa";
 
@@ -20,12 +21,10 @@ export function CompanyConfigurationSection({
   empresa: Empresa;
 }) {
   const router = useRouter();
+  const showStatusToast = useStatusToast();
   const [tieneCarrito, setTieneCarrito] = useState(empresa.tieneCarrito);
   const [incluirCodigoBarra, setIncluirCodigoBarra] = useState(
     empresa.incluirCodigoBarra ?? false,
-  );
-  const [pedidosFueraHorario, setPedidosFueraHorario] = useState(
-    empresa.pedidosFueraHorario ?? false,
   );
   const [imagenesEnArticulos, setImagenesEnArticulos] = useState(
     empresa.imagenesEnArticulos ?? true,
@@ -38,14 +37,12 @@ export function CompanyConfigurationSection({
   );
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   async function saveCatalogSettings(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (isSaving) return;
 
     setError(null);
-    setNotice(null);
 
     let minimumDays: number | null;
     let maximumDays: number | null;
@@ -80,18 +77,18 @@ export function CompanyConfigurationSection({
       await updateEmpresaCatalogSettings(empresa.id, {
         tieneCarrito,
         incluirCodigoBarra,
-        pedidosFueraHorario,
         imagenesEnArticulos,
         toleranciaMinDias: minimumDays,
         toleranciaMaxDias: maximumDays,
       });
-      setNotice("La configuración del catálogo se guardó correctamente.");
+      showStatusToast("La configuración del catálogo se guardó correctamente.", "success");
       router.refresh();
     } catch (cause) {
-      setError(
+      showStatusToast(
         cause instanceof Error
           ? cause.message
           : "No se pudo guardar la configuración del catálogo.",
+        "error",
       );
     } finally {
       setIsSaving(false);
@@ -100,11 +97,11 @@ export function CompanyConfigurationSection({
 
   return (
     <div className="space-y-6">
-      <CompanyPageNavigationSetting
+      <CompanyInformationSection empresa={empresa} />
+      <HorarioAdminPanel
         empresaId={empresa.id}
-        initialValue={empresa.mostrarNavegacionPaginas ?? true}
+        pedidosFueraHorario={empresa.pedidosFueraHorario ?? false}
       />
-      <HorarioAdminPanel empresaId={empresa.id} />
       <CollapsibleSection
         title="Catálogo"
         icon={
@@ -117,102 +114,80 @@ export function CompanyConfigurationSection({
       >
         <form onSubmit={saveCatalogSettings}>
           <fieldset disabled={isSaving} className="space-y-6">
-            <p className="text-sm leading-6 text-muted">
-              Configurá cómo se presenta el catálogo y cómo se reciben los pedidos.
-            </p>
-
             <div className="space-y-3">
               <CheckboxField
                 id="catalog-settings-barcode"
                 checked={incluirCodigoBarra}
                 onChange={setIncluirCodigoBarra}
-                label="Incluir código de barras"
-                description="Muestra el código de barras de los artículos en el catálogo."
-              />
-              <CheckboxField
-                id="catalog-settings-outside-hours"
-                checked={pedidosFueraHorario}
-                onChange={setPedidosFueraHorario}
-                label="Permitir pedidos fuera del horario"
-                description="Permite recibir pedidos fuera de los horarios de atención configurados."
+                label="Permitir búsqueda por código de barra"
+                description="Muestra el botón de búsqueda por código de barras en el catálogo"
               />
               <CheckboxField
                 id="catalog-settings-orders"
                 checked={tieneCarrito}
                 onChange={setTieneCarrito}
-                label="Catálogo con pedidos"
+                label="Permitir realizar pedidos en el catálogo"
                 description="Permite que los clientes armen pedidos desde el catálogo."
               />
             </div>
 
-            <CollapsibleSection title="Artículos" nested>
-              <p className="text-sm leading-6 text-muted">
-                Definí cómo se muestran las imágenes, la fecha de actualización y los precios.
-              </p>
+            <CheckboxField
+              id="catalog-settings-article-images"
+              checked={imagenesEnArticulos}
+              onChange={setImagenesEnArticulos}
+              label="Artículos con imagen"
+              description="Muestra las imágenes asociadas a los artículos en el catálogo."
+            />
 
-              <CheckboxField
-                id="catalog-settings-article-images"
-                checked={imagenesEnArticulos}
-                onChange={setImagenesEnArticulos}
-                label="Artículos con imagen"
-                description="Muestra las imágenes asociadas a los artículos en el catálogo."
-              />
-
-              <div className="grid gap-5 sm:grid-cols-2">
-                <div>
-                  <Input
-                    id="catalog-update-highlight-days"
-                    label="Resaltar actualización después de (días)"
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={toleranciaMinDias}
-                    onChange={(event) => {
-                      setToleranciaMinDias(event.currentTarget.value);
-                      setError(null);
-                    }}
-                    aria-describedby="catalog-update-highlight-help"
-                  />
-                  <p
-                    id="catalog-update-highlight-help"
-                    className="mt-2 text-xs leading-5 text-muted"
-                  >
-                    Al superar este plazo desde la última actualización, se resaltará la fecha de actualización del artículo en el catálogo.
-                  </p>
-                </div>
-                <div>
-                  <Input
-                    id="catalog-hide-price-days"
-                    label="Mostrar «Consultar» después de (días)"
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={toleranciaMaxDias}
-                    onChange={(event) => {
-                      setToleranciaMaxDias(event.currentTarget.value);
-                      setError(null);
-                    }}
-                    aria-describedby="catalog-hide-price-help"
-                  />
-                  <p
-                    id="catalog-hide-price-help"
-                    className="mt-2 text-xs leading-5 text-muted"
-                  >
-                    Al superar este plazo, el precio se reemplazará por «Consultar» en el catálogo. Debe ser mayor que el plazo para resaltar la actualización.
-                  </p>
-                </div>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <Input
+                  id="catalog-update-highlight-days"
+                  label="Resaltar actualización después de (días)"
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={toleranciaMinDias}
+                  onChange={(event) => {
+                    setToleranciaMinDias(event.currentTarget.value);
+                    setError(null);
+                  }}
+                  aria-describedby="catalog-update-highlight-help"
+                />
+                <p
+                  id="catalog-update-highlight-help"
+                  className="mt-2 text-xs leading-5 text-muted"
+                >
+                  Al superar este plazo desde la última actualización, se resaltará la fecha de actualización del artículo en el catálogo.
+                </p>
               </div>
-            </CollapsibleSection>
+              <div>
+                <Input
+                  id="catalog-hide-price-days"
+                  label="Mostrar «Consultar» después de (días)"
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={toleranciaMaxDias}
+                  onChange={(event) => {
+                    setToleranciaMaxDias(event.currentTarget.value);
+                    setError(null);
+                  }}
+                  aria-describedby="catalog-hide-price-help"
+                />
+                <p
+                  id="catalog-hide-price-help"
+                  className="mt-2 text-xs leading-5 text-muted"
+                >
+                  Al superar este plazo, el precio se reemplazará por «Consultar» en el catálogo. Debe ser mayor que el plazo para resaltar la actualización.
+                </p>
+              </div>
+            </div>
           </fieldset>
 
           {error ? (
             <p role="alert" className="mt-5 text-sm text-danger">
               {error}
-            </p>
-          ) : null}
-          {notice ? (
-            <p role="status" className="mt-5 text-sm text-muted">
-              {notice}
             </p>
           ) : null}
           <div className="mt-6 flex justify-end">
@@ -227,8 +202,8 @@ export function CompanyConfigurationSection({
         </form>
       </CollapsibleSection>
       <UsuariosInternosPanel empresaId={empresa.id} />
+      <UsuariosExternosPanel empresaId={empresa.id} />
       <CompanyAdminUserSettings empresaId={empresa.id} />
-      <CompanyInformationSection empresa={empresa} />
     </div>
   );
 }

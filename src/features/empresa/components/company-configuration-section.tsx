@@ -98,20 +98,22 @@ export function CompanyConfigurationSection({
   return (
     <div className="space-y-6">
       <CompanyInformationSection empresa={empresa} />
-      <HorarioAdminPanel
-        empresaId={empresa.id}
-        pedidosFueraHorario={empresa.pedidosFueraHorario ?? false}
-      />
-      <CollapsibleSection
-        title="Catálogo"
-        icon={
-          <ShoppingBag
-            aria-hidden="true"
-            className="size-6 text-muted"
-            strokeWidth={1.7}
+      {empresa.catalogoHabilitado ? (
+        <>
+          <HorarioAdminPanel
+            empresaId={empresa.id}
+            pedidosFueraHorario={empresa.pedidosFueraHorario ?? false}
           />
-        }
-      >
+          <CollapsibleSection
+            title="Catálogo"
+            icon={
+              <ShoppingBag
+                aria-hidden="true"
+                className="size-6 text-muted"
+                strokeWidth={1.7}
+              />
+            }
+          >
         <form onSubmit={saveCatalogSettings}>
           <fieldset disabled={isSaving} className="space-y-6">
             <div className="space-y-3">
@@ -200,9 +202,13 @@ export function CompanyConfigurationSection({
             </button>
           </div>
         </form>
-      </CollapsibleSection>
+          </CollapsibleSection>
+        </>
+      ) : null}
       <UsuariosInternosPanel empresaId={empresa.id} />
-      <UsuariosExternosPanel empresaId={empresa.id} />
+      {empresa.catalogoHabilitado ? (
+        <UsuariosExternosPanel empresaId={empresa.id} />
+      ) : null}
       <CompanyAdminUserSettings empresaId={empresa.id} />
     </div>
   );

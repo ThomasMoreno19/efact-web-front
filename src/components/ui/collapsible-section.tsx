@@ -20,7 +20,7 @@ export function CollapsibleSection({
       className={
         nested
           ? "group/subsection border-t border-border pt-6"
-          : "group/section overflow-hidden rounded-card border border-border bg-surface"
+          : "group/section rounded-card border border-border bg-surface"
       }
     >
       <summary

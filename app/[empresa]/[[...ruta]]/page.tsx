@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { ShoppingBag } from 'lucide-react';
 import { notFound, redirect } from 'next/navigation';
+import { CompanyLogo } from '@/features/empresa/components/company-logo';
 import { getEmpresaPublicaBySlug } from '@/features/empresa/services/empresa-public-query.service';
 
 interface CompanyRouteFallbackProps {
@@ -30,12 +32,26 @@ export async function generateMetadata({
 }
 
 const PUBLIC_MODULES = [
-  { key: 'catalogoHabilitado', path: 'catalogo', label: 'Catálogo' },
-  { key: 'saldosHabilitados', path: 'saldo', label: 'Consulta de saldos' },
+  {
+    key: 'catalogoHabilitado',
+    path: 'catalogo',
+    label: 'Catálogo',
+    description: 'Explorá los artículos disponibles y armá tu pedido para enviar por WhatsApp.',
+    icon: ShoppingBag,
+  },
+  {
+    key: 'saldosHabilitados',
+    path: 'saldo',
+    label: 'Saldo',
+    description: 'Consultá tus saldos disponibles ingresando tu DNI o CUIL.',
+    icon: 'saldo',
+  },
   {
     key: 'reparacionesHabilitadas',
     path: 'reparacion',
-    label: 'Consulta de reparaciones',
+    label: 'Reparación',
+    description: 'Revisá el estado de los equipos que dejaste para reparar.',
+    icon: 'reparacion',
   },
 ] as const;
 
@@ -59,19 +75,38 @@ export default async function CompanyRouteFallback({
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-5 py-12 text-foreground">
       <section className="w-full max-w-xl space-y-6 text-center">
-        <p className="text-sm font-bold tracking-[0.2em] text-brand">E-FACT</p>
+        <div className="mx-auto flex h-24 w-fit max-w-full items-center justify-center overflow-hidden rounded-record bg-surface px-4">
+          <CompanyLogo empresa={empresa} fitToHeight />
+        </div>
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
           {empresa.nombre}
         </h1>
         {availableModules.length > 0 ? (
-          <nav aria-label={`Páginas de ${empresa.nombre}`} className="grid gap-3">
-            {availableModules.map(({ path, label }) => (
+          <nav aria-label={`Páginas de ${empresa.nombre}`} className="grid gap-3 text-left">
+            {availableModules.map(({ path, label, description, icon }) => (
               <Link
                 key={path}
                 href={`/${empresa.slug}/${path}`}
-                className="inline-flex min-h-12 items-center justify-center rounded-button bg-brand px-6 text-sm font-semibold text-brand-foreground transition hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                className="flex min-h-24 items-center gap-4 rounded-card border border-border bg-surface p-4 transition hover:border-brand/40 hover:bg-surface-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               >
-                {label}
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-button bg-brand/10 text-brand">
+                  {icon === 'saldo' ? (
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="size-6">
+                      <rect x="3" y="5" width="18" height="14" rx="2" />
+                      <path d="M3 10h18m-5 5h2" />
+                    </svg>
+                  ) : icon === 'reparacion' ? (
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="size-6">
+                      <path d="M14.5 6.5a5 5 0 0 0-6.4 6.4l-4.8 4.8a2.1 2.1 0 0 0 3 3l4.8-4.8a5 5 0 0 0 6.4-6.4l-3 3-3-3 3-3Z" />
+                    </svg>
+                  ) : (
+                    <ShoppingBag aria-hidden="true" className="size-6" strokeWidth={1.7} />
+                  )}
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-base font-semibold text-foreground">{label}</span>
+                  <span className="mt-1 block text-sm leading-5 text-muted">{description}</span>
+                </span>
               </Link>
             ))}
           </nav>

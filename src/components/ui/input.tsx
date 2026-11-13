@@ -13,6 +13,7 @@ export type InputProps = Omit<
   endAdornmentPadding?: "compact" | "normal";
   id: string;
   label: string;
+  labelAdornment?: ReactNode;
   type?: HTMLInputTypeAttribute;
 };
 
@@ -22,14 +23,18 @@ export function Input({
   endAdornmentPadding = "normal",
   id,
   label,
+  labelAdornment,
   type = "text",
   ...inputProps
 }: InputProps) {
   return (
     <div className="grid gap-2">
-      <label htmlFor={id} className="text-sm font-medium text-foreground">
-        {label}
-      </label>
+      <div className="flex items-center gap-2">
+        <label htmlFor={id} className="text-sm font-medium text-foreground">
+          {label}
+        </label>
+        {labelAdornment}
+      </div>
 
       <div className="relative">
         <input

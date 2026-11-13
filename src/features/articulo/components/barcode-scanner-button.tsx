@@ -696,7 +696,7 @@ export function BarcodeScannerButton({
         aria-label="Escanear código de barras"
         title="Escanear código de barras"
         onClick={openScanner}
-        className={`flex size-10 shrink-0 items-center justify-center rounded-button text-muted transition hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${className}`}
+        className={`flex size-10 shrink-0 items-center justify-center rounded-button text-brand transition hover:text-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${className}`}
       >
         <svg
           aria-hidden="true"

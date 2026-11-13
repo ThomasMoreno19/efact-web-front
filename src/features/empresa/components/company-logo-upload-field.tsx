@@ -64,8 +64,15 @@ export function CompanyLogoUploadField({
             accept={LOGO_FILE_ACCEPT}
             disabled={disabled}
             onChange={(event) => onFileChange(event.target.files?.[0] ?? null)}
-            className="block w-full text-sm text-muted file:mr-3 file:rounded-button file:border-0 file:bg-brand file:px-3 file:py-2 file:font-medium file:text-brand-foreground hover:file:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
+            className="sr-only"
           />
+          <label
+            htmlFor="empresa-logo-file"
+            aria-disabled={disabled}
+            className={`inline-flex h-10 cursor-pointer items-center rounded-button bg-brand px-4 text-sm font-medium text-brand-foreground transition hover:bg-brand-hover focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand ${disabled ? "pointer-events-none opacity-50" : ""}`}
+          >
+            Seleccionar imagen
+          </label>
           <p className="mt-2 text-xs leading-5 text-muted">
             PNG, JPG o WebP. Tamaño máximo: 50 MB.
           </p>

@@ -12,6 +12,7 @@
   --app-brand: #e8a114;
   --app-brand-hover: #f2b233;
   --app-brand-foreground: #181818;
+  --app-offer: #e83151;
   --app-border: #3a3a3a;
   --app-danger: #f87171;
   --app-success: #22c55e;
@@ -37,6 +38,7 @@
   --color-brand: var(--app-brand);
   --color-brand-hover: var(--app-brand-hover);
   --color-brand-foreground: var(--app-brand-foreground);
+  --color-offer: var(--app-offer);
   --color-border: var(--app-border);
   --color-danger: var(--app-danger);
   --color-success: var(--app-success);

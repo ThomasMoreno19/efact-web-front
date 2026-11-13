@@ -496,7 +496,7 @@ export function CatalogoPublicoPage({
       }
       const filter = { id, categoria, nombre: record.nombre };
       return replaceCategoryFilters
-        ? [filter]
+        ? [...current.filter((item) => item.categoria !== categoria), filter]
         : [...current, filter];
     });
     setActiveList('articulos');
@@ -517,7 +517,7 @@ export function CatalogoPublicoPage({
     .join(',');
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8 text-foreground sm:px-6 sm:py-12">
+    <main className="flex min-h-screen flex-col bg-background px-4 py-8 text-foreground sm:px-6 sm:py-12">
       <CompanyPublicPageHeader
         empresa={empresa}
         currentPage="catalogo"
@@ -726,6 +726,29 @@ export function CatalogoPublicoPage({
           </span>
         </button>
       ) : null}
+      <footer className="mt-auto flex flex-col items-center justify-center gap-2 pt-12 text-sm text-muted">
+        <a
+          href="https://www.instagram.com/iteracion.informatica/"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Instagram de IteraciON"
+          className="flex size-9 items-center justify-center rounded-button text-muted transition hover:bg-surface-raised hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            className="size-5"
+          >
+            <rect x="3" y="3" width="18" height="18" rx="5" />
+            <circle cx="12" cy="12" r="4" />
+            <circle cx="17.5" cy="6.5" r=".75" fill="currentColor" stroke="none" />
+          </svg>
+        </a>
+        <span>{new Date().getFullYear()} IteraciON</span>
+      </footer>
     </main>
   );
 }
@@ -1281,9 +1304,9 @@ function CatalogoArticulos({
                     <span
                       aria-hidden="true"
                       title="En oferta"
-                      className="absolute right-1 top-1 z-10 flex size-7 items-center justify-center rounded-button bg-brand text-brand-foreground shadow-md"
+                      className="absolute left-1 top-1 z-10 flex items-center justify-center rounded-record bg-offer px-1.5 py-1 text-xs font-bold tracking-wide text-white shadow-md"
                     >
-                      <BadgePercent className="size-4" />
+                      % OFF
                     </span>
                   ) : null}
                 </button>
@@ -1399,7 +1422,7 @@ function CatalogoTarjetas({
             <span className="absolute inset-0 overflow-hidden rounded-record">
               <RecordImage
                 source={getAccessibleImageUrl(record.logo_url?.trim() ?? null)}
-                fallbackIcon={categoria === 'rubros' ? Shapes : undefined}
+                fallbackIcon={categoria === 'marcas' ? Tag : Shapes}
               />
               <span className="absolute inset-0 bg-background/45" />
             </span>

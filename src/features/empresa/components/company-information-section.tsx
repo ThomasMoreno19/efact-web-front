@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { CircleHelp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { CheckboxField } from "@/components/ui/checkbox-field";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
@@ -99,17 +100,38 @@ export function CompanyInformationSection({
             maxLength={100}
             required
           />
-          <Input
-            id="company-information-phone"
-            label="Teléfono"
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            value={telefono}
-            onChange={(event) => setTelefono(event.currentTarget.value)}
-            placeholder="+54 9 3535 12-3456"
-            maxLength={18}
-          />
+          <div>
+            <Input
+              id="company-information-phone"
+              label="Teléfono"
+              labelAdornment={
+                <span className="group relative inline-flex">
+                  <button
+                    type="button"
+                    aria-label="Ayuda sobre el teléfono"
+                    aria-describedby="company-information-phone-help"
+                    className="inline-flex size-5 items-center justify-center rounded-full text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                  >
+                    <CircleHelp aria-hidden="true" className="size-4" />
+                  </button>
+                  <span
+                    id="company-information-phone-help"
+                    role="tooltip"
+                    className="pointer-events-none absolute left-1/2 top-full z-[100] mt-2 w-64 -translate-x-1/2 rounded-input border border-border bg-surface px-3 py-2 text-xs font-normal leading-5 text-foreground opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+                  >
+                    Ingresá el número en formato internacional, tal como figura en WhatsApp.
+                  </span>
+                </span>
+              }
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              value={telefono}
+              onChange={(event) => setTelefono(event.currentTarget.value)}
+              placeholder="+54 9 3535 12-3456"
+              maxLength={18}
+            />
+          </div>
           <Input
             id="company-information-location"
             label="Ubicación"

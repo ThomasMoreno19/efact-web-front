@@ -565,6 +565,7 @@ export function InternalCatalogList({
                   lista={activeList}
                   categorias={categories}
                   selectedFilters={categoryFilters}
+                  selectedItems={movementItems}
                   onSelect={toggleCategoryFilter}
                 />
               ) : null}
@@ -858,11 +859,13 @@ function InternalCatalogCategories({
   lista,
   categorias,
   selectedFilters,
+  selectedItems,
   onSelect,
 }: {
   lista: InternalCategoryList;
   categorias: CatalogoInternoCategoria[];
   selectedFilters: InternalCategoryFilter[];
+  selectedItems: MovimientoExistenciaItem[];
   onSelect: (
     lista: InternalCategoryList,
     categoria: CatalogoInternoCategoria,
@@ -880,13 +883,24 @@ function InternalCatalogCategories({
         const selected = selectedFilters.some(
           (filter) => filter.lista === lista && filter.id === categoria.id,
         );
+        const selectedArticleCount = selectedItems.filter((item) => {
+          const relation =
+            lista === 'marcas'
+              ? item.articulo.marca
+              : lista === 'rubros'
+                ? item.articulo.rubro
+                : lista === 'proveedores'
+                  ? item.articulo.proveedor
+                  : item.articulo.ubicacion;
+          return relation?.id === categoria.id;
+        }).length;
         const ItemIcon = getCategoryIcon(lista);
         return (
           <button
             key={categoria.id}
             type="button"
             aria-pressed={selected}
-            aria-label={`${selected ? 'Quitar' : 'Agregar'} filtro de ${getCategoryLabel(lista)} ${categoria.nombre}`}
+            aria-label={`${selected ? 'Quitar' : 'Agregar'} filtro de ${getCategoryLabel(lista)} ${categoria.nombre}${selectedArticleCount > 0 ? `, ${selectedArticleCount} artículos seleccionados` : ''}`}
             onClick={() => onSelect(lista, categoria)}
             className={`relative flex items-center justify-center overflow-hidden rounded-record border bg-surface-raised text-center transition focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
               lista === 'ubicaciones' ? 'min-h-24 p-3' : 'min-h-48 p-6'
@@ -915,6 +929,11 @@ function InternalCatalogCategories({
             <span className="relative z-10 max-w-full break-words text-lg font-semibold">
               {categoria.nombre}
             </span>
+            {selectedArticleCount > 0 ? (
+              <span className="absolute right-2 top-2 z-20 flex min-h-6 min-w-6 items-center justify-center rounded-pill bg-danger px-1.5 text-xs font-bold text-background">
+                {selectedArticleCount}
+              </span>
+            ) : null}
           </button>
         );
       })}

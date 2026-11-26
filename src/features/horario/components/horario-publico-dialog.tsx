@@ -18,7 +18,30 @@ export function HorarioPublicoDialog({
   const scheduleGroups = groupSchedulesByHours(horarios);
 
   return (
-    <DialogShell title="Horarios de atención" onClose={onClose}>
+    <DialogShell
+      title={
+        <span className="inline-flex items-center gap-2">
+          Horarios de atención
+          <svg
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="size-6 shrink-0"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 6v6l4 2" />
+          </svg>
+        </span>
+      }
+      onClose={onClose}
+    >
       {horarios.length === 0 ? (
         <p className="text-sm text-muted">No hay horarios configurados.</p>
       ) : (

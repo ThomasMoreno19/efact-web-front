@@ -42,6 +42,7 @@ import type {
 import {
   buildCatalogoCarritoUrl,
   MAX_CART_QUANTITY,
+  parseCatalogoCarritoEntries,
   serializeCatalogoCarritoEntries,
   type CatalogoCarritoEntrada,
 } from '@/features/catalogo/utils/catalogo-carrito-url';
@@ -113,6 +114,7 @@ export function CatalogoPublicoPage({
 }) {
   const router = useRouter();
   const initialCartEntriesKey = JSON.stringify(initialCartEntries);
+  const cartStorageKey = `catalogo-carrito:${empresa.id}`;
   const [activeList, setActiveList] = useState<CatalogoListaPublica>('articulos');
   const [keepInitialFocus, setKeepInitialFocus] = useState(true);
   const [isCompactHeader, setIsCompactHeader] = useState(false);
@@ -123,9 +125,7 @@ export function CatalogoPublicoPage({
   const [horarioRetryKey, setHorarioRetryKey] = useState(0);
   const [horaActual, setHoraActual] = useState<Date | null>(null);
   const [cartItems, setCartItems] = useState<CatalogoItemCarrito[]>([]);
-  const [hydratedCartKey, setHydratedCartKey] = useState<string | null>(
-    initialCartEntries.length === 0 ? initialCartEntriesKey : null,
-  );
+  const [hydratedCartKey, setHydratedCartKey] = useState<string | null>(null);
   const [cartLoadError, setCartLoadError] = useState<string | null>(null);
   const [nombreCliente, setNombreCliente] = useState('');
   const [observacionPedido, setObservacionPedido] = useState('');
@@ -143,7 +143,7 @@ export function CatalogoPublicoPage({
   });
   const currentFilter = filters[activeList];
   const whatsappNumber = empresa.telefono?.replace(/\D/g, '').replace(/^00/, '');
-  const cartCount = cartItems.reduce((total, item) => total + item.cantidad, 0);
+  const cartCount = cartItems.length;
   const isCartRoute = initialView === 'carrito';
   const compactHeader = isCartRoute || isCompactHeader;
   const isCartLoading = hydratedCartKey !== initialCartEntriesKey;
@@ -175,9 +175,18 @@ export function CatalogoPublicoPage({
   }, [initialArticleCode, initialOpenArticleDetails, initialView]);
 
   useEffect(() => {
-    const entries = JSON.parse(
-      initialCartEntriesKey,
-    ) as CatalogoCarritoEntrada[];
+    let entries = JSON.parse(initialCartEntriesKey) as CatalogoCarritoEntrada[];
+    if (entries.length === 0) {
+      try {
+        const storedEntries = window.localStorage.getItem(cartStorageKey);
+        if (storedEntries) {
+          const values: unknown = JSON.parse(storedEntries);
+          if (Array.isArray(values) && values.every((value) => typeof value === 'string')) {
+            entries = parseCatalogoCarritoEntries(values as string[]);
+          }
+        }
+      } catch {}
+    }
     if (entries.length === 0) {
       setCartItems([]);
       setCartLoadError(null);
@@ -186,6 +195,7 @@ export function CatalogoPublicoPage({
     }
 
     const controller = new AbortController();
+    setHydratedCartKey(null);
     setCartLoadError(null);
     getCatalogoPublicoPage(
       empresa.id,
@@ -245,6 +255,7 @@ export function CatalogoPublicoPage({
     empresa.toleranciaMaxDias,
     empresa.toleranciaMinDias,
     initialCartEntriesKey,
+    cartStorageKey,
   ]);
 
   useEffect(() => {
@@ -299,6 +310,18 @@ export function CatalogoPublicoPage({
       `${url.pathname}${url.search}${url.hash}`,
     );
   }, [cartItems, cartLoadError, initialCartEntriesKey, isCartLoading]);
+
+  useEffect(() => {
+    if (isCartLoading || (cartLoadError !== null && cartItems.length === 0)) {
+      return;
+    }
+    try {
+      window.localStorage.setItem(
+        cartStorageKey,
+        JSON.stringify(serializeCatalogoCarritoEntries(getCartEntries(cartItems))),
+      );
+    } catch {}
+  }, [cartItems, cartLoadError, cartStorageKey, isCartLoading]);
 
   useEffect(() => {
     function updateScrollState() {
@@ -517,7 +540,13 @@ export function CatalogoPublicoPage({
     .join(',');
 
   return (
-    <main className="flex min-h-screen flex-col bg-background px-4 py-8 text-foreground sm:px-6 sm:py-12">
+    <main
+      className={`flex flex-col bg-background px-4 text-foreground sm:px-6 ${
+        isCartRoute
+          ? 'pt-[22px] pb-8 sm:pt-[38px] sm:pb-12'
+          : 'min-h-screen py-8 sm:py-12'
+      }`}
+    >
       <CompanyPublicPageHeader
         empresa={empresa}
         currentPage="catalogo"
@@ -726,29 +755,37 @@ export function CatalogoPublicoPage({
           </span>
         </button>
       ) : null}
-      <footer className="mt-auto flex flex-col items-center justify-center gap-2 pt-12 text-sm text-muted">
-        <a
-          href="https://www.instagram.com/iteracion.informatica/"
-          target="_blank"
-          rel="noreferrer"
-          aria-label="Instagram de IteraciON"
-          className="flex size-9 items-center justify-center rounded-button text-muted transition hover:bg-surface-raised hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-        >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            className="size-5"
+      {!isCartRoute ? (
+        <footer className="mt-auto flex flex-col items-center justify-center gap-2 pt-12 text-sm text-muted">
+          <a
+            href="https://www.instagram.com/iteracion.informatica/"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Instagram de IteraciON"
+            className="flex size-9 items-center justify-center rounded-button text-muted transition hover:bg-surface-raised hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
-            <rect x="3" y="3" width="18" height="18" rx="5" />
-            <circle cx="12" cy="12" r="4" />
-            <circle cx="17.5" cy="6.5" r=".75" fill="currentColor" stroke="none" />
-          </svg>
-        </a>
-        <span>{new Date().getFullYear()} IteraciON</span>
-      </footer>
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              className="size-5"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="5" />
+              <circle cx="12" cy="12" r="4" />
+              <circle
+                cx="17.5"
+                cy="6.5"
+                r=".75"
+                fill="currentColor"
+                stroke="none"
+              />
+            </svg>
+          </a>
+          <span>{new Date().getFullYear()} IteraciON</span>
+        </footer>
+      ) : null}
     </main>
   );
 }
@@ -1055,13 +1092,33 @@ function CatalogoPublicoList({
         </p>
       ) : null}
       {!isLoading && !error && records.length === 0 ? (
-        <p className="mt-5 text-center text-sm text-muted">
-          {lista === 'articulos' && !searchIsActive
-            ? 'Ingrese criterios de búsqueda para obtener resultados'
-            : searchIsActive
-            ? 'No se encontraron registros con esos filtros.'
-            : 'No hay registros cargados para esta empresa.'}
-        </p>
+        lista === 'articulos' && !searchIsActive ? (
+          <div className="my-[10px] flex flex-col items-center gap-3 text-center text-sm text-muted">
+            <svg
+              aria-hidden="true"
+              xmlns="http://www.w3.org/2000/svg"
+              width="40"
+              height="40"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="size-10"
+            >
+              <path d="m21 21-4.34-4.34" />
+              <circle cx="11" cy="11" r="8" />
+            </svg>
+            <p>Ingrese criterios de búsqueda para obtener resultados</p>
+          </div>
+        ) : (
+          <p className="mt-5 text-center text-sm text-muted">
+            {searchIsActive
+              ? 'No se encontraron registros con esos filtros.'
+              : 'No hay registros cargados para esta empresa.'}
+          </p>
+        )
       ) : null}
 
       {!isLoading && records.length > 0 ? (
@@ -1070,6 +1127,7 @@ function CatalogoPublicoList({
             categoria={lista}
             records={records}
             selectedFilters={categoryFilters}
+            cartItems={cartItems}
             onToggleFilter={onToggleCategoryFilter}
           />
         ) : (
@@ -1387,11 +1445,13 @@ function CatalogoTarjetas({
   categoria,
   records,
   selectedFilters,
+  cartItems,
   onToggleFilter,
 }: {
   categoria: 'marcas' | 'rubros';
   records: CatalogoRegistroPublico[];
   selectedFilters: CatalogoFiltroCategoria[];
+  cartItems: CatalogoItemCarrito[];
   onToggleFilter: (
     categoria: 'marcas' | 'rubros',
     record: CatalogoRegistroPublico,
@@ -1405,13 +1465,21 @@ function CatalogoTarjetas({
             filter.categoria === categoria && filter.id === String(record.id),
         );
         const categoryLabel = categoria === 'marcas' ? 'marca' : 'rubro';
+        const selectedArticleCount = cartItems.filter((item) => {
+          const relation =
+            categoria === 'marcas'
+              ? item.articulo.marca
+              : item.articulo.rubro;
+          return relation?.id !== undefined &&
+            String(relation.id) === String(record.id);
+        }).length;
 
         return (
           <button
             key={record.id}
             type="button"
             aria-pressed={isSelected}
-            aria-label={`${isSelected ? 'Quitar' : 'Agregar'} filtro de ${categoryLabel} ${record.nombre}`}
+            aria-label={`${isSelected ? 'Quitar' : 'Agregar'} filtro de ${categoryLabel} ${record.nombre}${selectedArticleCount > 0 ? `, ${selectedArticleCount} artículos seleccionados` : ''}`}
             onClick={() => onToggleFilter(categoria, record)}
             className={`relative flex min-h-56 items-center justify-center overflow-hidden rounded-record border bg-surface-raised p-6 text-center transition focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
               isSelected
@@ -1429,6 +1497,11 @@ function CatalogoTarjetas({
             <span className="relative z-10 max-w-full break-words text-lg font-semibold">
               {record.nombre}
             </span>
+            {selectedArticleCount > 0 ? (
+              <span className="absolute right-2 top-2 z-20 flex min-h-6 min-w-6 items-center justify-center rounded-pill bg-danger px-1.5 text-xs font-bold text-background">
+                {selectedArticleCount}
+              </span>
+            ) : null}
           </button>
         );
       })}

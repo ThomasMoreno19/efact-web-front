@@ -88,7 +88,7 @@ export function CatalogoShareButton({
     if (option === 'copy') {
       try {
         await navigator.clipboard.writeText(absoluteUrl);
-        setStatus('Enlace copiado.');
+        setIsOpen(false);
       } catch {
         setStatus('No se pudo copiar el enlace. Intentá nuevamente.');
       }

@@ -6,7 +6,7 @@ import { useDialogBackdropDismiss } from "@/hooks/use-dialog-backdrop-dismiss";
 interface DialogShellProps {
   children: ReactNode;
   onClose: () => void;
-  title: string;
+  title: ReactNode;
 }
 
 export function DialogShell({

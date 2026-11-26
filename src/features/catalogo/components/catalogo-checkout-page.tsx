@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { ArrowLeft, Info, Minus, Plus, Trash2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { CatalogoShareButton } from '@/features/catalogo/components/catalogo-share-button';
 import { CatalogoRegistroDetalleModal } from '@/features/catalogo/components/catalogo-registro-detalle-modal';
@@ -73,15 +73,9 @@ export function CatalogoCarritoPage({
     !isLoading && items.length > 0 && estadoHorario === 'fuera-horario';
   const continuarNativamenteDeshabilitado =
     continuarDeshabilitado && !avisarHorarioAlContinuar;
-  const [avisoHorarioAnimationKey, setAvisoHorarioAnimationKey] = useState(0);
-
-  useEffect(() => {
-    if (estadoHorario !== 'fuera-horario') setAvisoHorarioAnimationKey(0);
-  }, [estadoHorario]);
-
   function handleContinue() {
     if (avisarHorarioAlContinuar) {
-      setAvisoHorarioAnimationKey((key) => key + 1);
+      setMostrarHorarios(true);
       return;
     }
     if (continuarDeshabilitado) return;
@@ -90,14 +84,14 @@ export function CatalogoCarritoPage({
 
   return (
     <>
-      <div className="pb-52 sm:pb-36">
+      <div className="pb-[168px] sm:pb-[104px]">
         <div className="mb-2 flex justify-start">
           <button
             type="button"
             onClick={onBack}
             className="inline-flex h-8 items-center gap-1.5 rounded-button border border-border px-2.5 text-xs font-medium transition hover:bg-surface-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
-            <ArrowLeft aria-hidden="true" className="size-3.5" />
+            <ArrowLeft aria-hidden="true" className="size-4" />
             Volver al catálogo
           </button>
         </div>
@@ -162,15 +156,7 @@ export function CatalogoCarritoPage({
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 px-4 py-3 shadow-xl backdrop-blur">
         <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           {estadoHorario === 'fuera-horario' ? (
-            <p
-              key={avisoHorarioAnimationKey}
-              role="status"
-              className={`text-base text-muted ${
-                avisoHorarioAnimationKey > 0
-                  ? 'animate-warning-text-shadow-fade'
-                  : ''
-              }`}
-            >
+            <p role="status" className="text-base text-muted">
               No se pueden realizar pedidos fuera de horario{' '}
               <button
                 type="button"
@@ -199,7 +185,7 @@ export function CatalogoCarritoPage({
             </p>
           ) : null}
           <div className="flex items-center justify-between gap-3 sm:ml-auto sm:justify-end">
-            <p className="flex min-w-0 flex-col text-base font-semibold">
+            <p className="flex min-w-0 flex-col text-lg font-semibold">
               <span>Total</span>
               <span className="break-words">
                 {total === null ? 'Consultar' : formatCurrency(total)}
@@ -359,7 +345,7 @@ function CartItem({
           ) : null}
           <div>
             <dt className="text-xs text-muted">
-              {articulo.tiene_existencia === true ? 'Subtotal' : 'Total'}
+              Subtotal
             </dt>
             <dd className="mt-1 font-semibold">
               {subtotal === null ? 'Consultar' : formatCurrency(subtotal)}
@@ -402,7 +388,7 @@ function CartItem({
       <div className="mt-4 grid gap-3">
         <CartObservation
           id={`${articulo.id}-observation-1`}
-          label="Observación 1"
+          label="Observaciones"
           value={item.observacion1}
           onChange={(value) =>
             onObservationChange(articulo.id, 'observacion1', value)
@@ -479,7 +465,7 @@ function CartObservation({
         maxLength={50}
         rows={2}
         onChange={(event) => onChange(event.currentTarget.value)}
-        className="w-full resize-y rounded-input border border-border bg-surface px-4 py-3 text-sm text-foreground outline-none transition placeholder:text-muted/70 focus:border-brand focus:ring-4 focus:ring-brand/15"
+        className="h-[60px] w-full resize-none rounded-input border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition placeholder:text-muted/70 focus:border-brand focus:ring-4 focus:ring-brand/15"
       />
       <p className="text-right text-xs text-muted">{value.length}/50</p>
     </div>
